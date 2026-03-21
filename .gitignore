@@ -30,6 +30,10 @@ Thumbs.db
 # editor files
 .vscode/
 .idea/
+.md*
+frontend/AGENTS.md
+frontend/CLAUDE.md
+
 
 # build 
 dist/
