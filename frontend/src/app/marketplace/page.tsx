@@ -1,41 +1,69 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search, SlidersHorizontal, Zap, TrendingUp } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import {
+  Search,
+  SlidersHorizontal,
+  Zap,
+  TrendingUp,
+  MapPin,
+  Loader2,
+} from "lucide-react";
 import { EnergyCard } from "@/components/ui/energy-card";
 import { Chip } from "@/components/ui/chip";
-import { activeListings, platformStats } from "@/lib/mock-data";
+import { useLocation } from "@/context/LocationContext";
+import { getMatchedListings } from "@/lib/api";
+import { platformStats } from "@/lib/mock-data";
+import type { Listing } from "@/types";
 
-type SortKey = "price" | "distance" | "kwh" | "reliability";
+type SortKey = "match" | "price" | "distance" | "kwh" | "reliability";
 
 export default function MarketplacePage() {
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<SortKey>("price");
+  const [sortBy, setSortBy] = useState<SortKey>("match");
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loadingListings, setLoadingListings] = useState(true);
+  const { lat, lng, isDefault, loading: locationLoading } = useLocation();
+
+  // Fetch matched listings whenever location resolves
+  useEffect(() => {
+    if (locationLoading) return;
+    setLoadingListings(true);
+    getMatchedListings(lat, lng).then((results) => {
+      setListings(results);
+      setLoadingListings(false);
+    });
+  }, [lat, lng, locationLoading]);
 
   const filteredListings = useMemo(() => {
-    let results = activeListings.filter(
+    let results = listings.filter(
       (l) =>
         l.householdName.toLowerCase().includes(search.toLowerCase()) ||
         l.suburb.toLowerCase().includes(search.toLowerCase())
     );
 
-    results.sort((a, b) => {
-      switch (sortBy) {
-        case "price":
-          return a.pricePerKwh - b.pricePerKwh;
-        case "distance":
-          return a.distanceKm - b.distanceKm;
-        case "kwh":
-          return b.kwhAvailable - a.kwhAvailable;
-        case "reliability":
-          return b.reliabilityScore - a.reliabilityScore;
-        default:
-          return 0;
-      }
-    });
+    // "match" keeps the score-based order from the matching engine
+    if (sortBy !== "match") {
+      results = [...results].sort((a, b) => {
+        switch (sortBy) {
+          case "price":
+            return a.pricePerKwh - b.pricePerKwh;
+          case "distance":
+            return a.distanceKm - b.distanceKm;
+          case "kwh":
+            return b.kwhAvailable - a.kwhAvailable;
+          case "reliability":
+            return b.reliabilityScore - a.reliabilityScore;
+          default:
+            return 0;
+        }
+      });
+    }
 
     return results;
-  }, [search, sortBy]);
+  }, [listings, search, sortBy]);
+
+  const isLoading = locationLoading || loadingListings;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -47,6 +75,22 @@ export default function MarketplacePage() {
         <p className="body-lg text-on-surface-variant">
           Browse available solar energy from households in your area.
         </p>
+
+        {/* Location indicator */}
+        {!locationLoading && (
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-surface-lowest px-3 py-1.5 shadow-soft">
+            <MapPin className="h-3.5 w-3.5" />
+            {isDefault ? (
+              <span className="label-md text-secondary">
+                Using approximate location (Sydney CBD)
+              </span>
+            ) : (
+              <span className="label-md text-primary">
+                Using your location
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-8 lg:flex-row">
@@ -71,6 +115,7 @@ export default function MarketplacePage() {
               <SlidersHorizontal className="h-4 w-4 text-on-surface-variant" />
               {(
                 [
+                  ["match", "Best Match"],
                   ["price", "Price"],
                   ["distance", "Distance"],
                   ["kwh", "kWh"],
@@ -92,14 +137,26 @@ export default function MarketplacePage() {
             </div>
           </div>
 
-          {/* Listing Grid */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredListings.map((listing) => (
-              <EnergyCard key={listing.id} listing={listing} />
-            ))}
-          </div>
+          {/* Loading state */}
+          {isLoading && (
+            <div className="text-center py-20">
+              <Loader2 className="mx-auto h-8 w-8 text-primary animate-spin mb-4" />
+              <p className="body-md text-on-surface-variant">
+                Finding the best matches near you...
+              </p>
+            </div>
+          )}
 
-          {filteredListings.length === 0 && (
+          {/* Listing Grid */}
+          {!isLoading && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {filteredListings.map((listing) => (
+                <EnergyCard key={listing.id} listing={listing} />
+              ))}
+            </div>
+          )}
+
+          {!isLoading && filteredListings.length === 0 && (
             <div className="text-center py-20">
               <Zap className="mx-auto h-12 w-12 text-on-surface-variant/30 mb-4" />
               <p className="headline-sm text-on-surface-variant">
