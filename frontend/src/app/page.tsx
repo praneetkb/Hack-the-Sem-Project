@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { TiltCard } from "@/components/ui/tilt-card";
 import { Zap, ArrowRight, Sun, RefreshCw, Leaf, Building2, Shield } from "lucide-react";
 
 export default function LandingPage() {
@@ -119,9 +120,9 @@ export default function LandingPage() {
                   "Energy tokens transfer automatically via Solana smart contracts. Every trade is recorded on-chain — no middleman.",
               },
             ].map((item) => (
-              <div
+              <TiltCard
                 key={item.step}
-                className="bg-surface-lowest rounded-xl p-8 shadow-soft transition-smooth hover:shadow-elevated"
+                className="bg-surface-lowest rounded-xl p-8 shadow-soft"
               >
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg energy-gradient">
@@ -137,7 +138,7 @@ export default function LandingPage() {
                 <p className="body-md text-on-surface-variant">
                   {item.description}
                 </p>
-              </div>
+              </TiltCard>
             ))}
           </div>
         </div>
@@ -195,7 +196,7 @@ export default function LandingPage() {
             </div>
 
             {/* Right Column: Network Impact Card */}
-            <div className="bg-surface-lowest rounded-2xl p-8 shadow-soft relative">
+            <TiltCard className="bg-surface-lowest rounded-2xl p-8 shadow-soft relative">
               <div className="absolute top-6 right-6">
                 <span className="inline-flex items-center gap-1.5 bg-primary-container text-on-primary rounded-full px-3 py-1 text-xs font-semibold">
                   <span className="inline-block h-2 w-2 rounded-full bg-on-primary animate-pulse"></span>
@@ -225,7 +226,7 @@ export default function LandingPage() {
                   <p className="label-md text-on-surface-variant tracking-widest">TREES EQUIVALENT</p>
                 </div>
               </div>
-            </div>
+            </TiltCard>
           </div>
         </div>
       </section>
@@ -244,7 +245,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Card 1: Dynamic P2P Trading */}
-            <div className="bg-surface-lowest rounded-2xl p-8 shadow-soft">
+            <TiltCard className="bg-surface-lowest rounded-2xl p-8 shadow-soft">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl energy-gradient mb-5">
                 <Zap className="h-6 w-6 text-on-primary" />
               </div>
@@ -277,10 +278,10 @@ export default function LandingPage() {
                   </span>
                 </div>
               </div>
-            </div>
+            </TiltCard>
 
             {/* Card 2: Solana Settlement */}
-            <div className="bg-secondary rounded-2xl p-8 shadow-soft">
+            <TiltCard className="bg-secondary rounded-2xl p-8 shadow-soft">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-container mb-5">
                 <Shield className="h-6 w-6 text-on-primary-container" />
               </div>
@@ -303,10 +304,10 @@ export default function LandingPage() {
                   </span>
                 </div>
               </div>
-            </div>
+            </TiltCard>
 
             {/* Card 3: AI Forecasting */}
-            <div className="rounded-2xl p-8 shadow-soft" style={{ backgroundColor: "#fdb813" }}>
+            <TiltCard className="rounded-2xl p-8 shadow-soft" style={{ backgroundColor: "#fdb813" }}>
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-black/10 mb-5">
                 <Sun className="h-6 w-6 text-on-surface" />
               </div>
@@ -315,10 +316,10 @@ export default function LandingPage() {
                 Predictive analytics suggest when to hold or sell based on weather
                 patterns and peak demand hours.
               </p>
-            </div>
+            </TiltCard>
 
             {/* Card 4: Real-time Node Health */}
-            <div className="bg-surface-lowest rounded-2xl p-8 shadow-soft flex flex-col">
+            <TiltCard className="bg-surface-lowest rounded-2xl p-8 shadow-soft flex flex-col">
               <h3 className="headline-sm text-on-surface mb-3">Real-time Node Health</h3>
               <p className="body-md text-on-surface-variant mb-8">
                 Monitor your energy generation, storage, and consumption in a single
@@ -343,7 +344,7 @@ export default function LandingPage() {
                   <text x="70" y="86" textAnchor="middle" fontSize="11" fontWeight="600" fill="#42474e" letterSpacing="2">OPTIMAL</text>
                 </svg>
               </div>
-            </div>
+            </TiltCard>
           </div>
         </div>
       </section>
