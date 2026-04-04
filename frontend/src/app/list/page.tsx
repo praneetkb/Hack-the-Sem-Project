@@ -17,6 +17,7 @@ import {
   listings,
   platformStats,
 } from "@/lib/mock-data";
+import { createListing } from "@/lib/api";
 
 export default function ListSurplusPage() {
   // Calculate current surplus from latest meter reading
@@ -38,10 +39,14 @@ export default function ListSurplusPage() {
   );
 
   const handleSubmit = async () => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
+    try {
+      await createListing({ kwhAvailable: kwhToList, pricePerKwh });
+      setSubmitted(true);
+      setTimeout(() => setSubmitted(false), 3000);
+      // Wait to re-fetch or clear if we want, but letting them see success is enough for now.
+    } catch (err) {
+      console.error("Failed to list energy:", err);
+    }
   };
 
   return (
