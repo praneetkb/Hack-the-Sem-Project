@@ -1,6 +1,7 @@
 // Matching engine: matches buyers and sellers based on location and price
 
-const { listings } = require("../data/listings");
+const { listings } = require("../data/store");
+const households = require("../data/households");
 const { getDistance } = require("../utils/distance");
 
 // to calculate score (prioritizing proximity over price for now)
@@ -21,12 +22,13 @@ function getRankedListings(userLocation, filters = {}) {
 
   // step 1: get and add distance to each listing
   const enriched = listings.map((listing) => {
-    const distance = getDistance(
-      userLocation.lat, // user location will come from frontend (browser geolocation) - yet to implement
+    const household = households.find((h) => h.id === listing.householdId);
+    const distance = household ? getDistance(
+      userLocation.lat,
       userLocation.lng,
-      listing.location.lat, // listing (household) location will come from database of households - yet to implement
-      listing.location.lng
-    );
+      household.location.lat,
+      household.location.lng
+    ) : 999;
 
     return {
       ...listing,

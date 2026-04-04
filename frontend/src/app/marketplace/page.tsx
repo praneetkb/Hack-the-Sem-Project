@@ -12,9 +12,16 @@ import {
 import { EnergyCard } from "@/components/ui/energy-card";
 import { Chip } from "@/components/ui/chip";
 import { useLocation } from "@/context/LocationContext";
-import { getMatchedListings } from "@/lib/api";
-import { platformStats } from "@/lib/mock-data";
+import { getMatchedListings, getPlatformStats } from "@/lib/api";
 import type { Listing } from "@/types";
+
+interface PlatformStats {
+  avgPricePerKwh: number;
+  gridPricePerKwh: number;
+  activeListingsCount: number;
+  totalKwhTraded: number;
+  activeHouseholds: number;
+}
 
 type SortKey = "match" | "price" | "distance" | "kwh" | "reliability";
 
@@ -23,6 +30,7 @@ export default function MarketplacePage() {
   const [sortBy, setSortBy] = useState<SortKey>("match");
   const [listings, setListings] = useState<Listing[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
+  const [stats, setStats] = useState<PlatformStats | null>(null);
   const { lat, lng, isDefault, loading: locationLoading } = useLocation();
 
   // Fetch matched listings whenever location resolves
@@ -33,6 +41,7 @@ export default function MarketplacePage() {
       setListings(results);
       setLoadingListings(false);
     });
+    getPlatformStats().then(setStats);
   }, [lat, lng, locationLoading]);
 
   const filteredListings = useMemo(() => {
@@ -125,11 +134,10 @@ export default function MarketplacePage() {
                 <button
                   key={key}
                   onClick={() => setSortBy(key)}
-                  className={`rounded-full px-3 py-1 label-md transition-smooth cursor-pointer ${
-                    sortBy === key
+                  className={`rounded-full px-3 py-1 label-md transition-smooth cursor-pointer ${sortBy === key
                       ? "bg-primary text-on-primary"
                       : "bg-surface-lowest text-on-surface-variant hover:bg-surface-low"
-                  }`}
+                    }`}
                 >
                   {label}
                 </button>
@@ -178,7 +186,7 @@ export default function MarketplacePage() {
               <div>
                 <p className="label-md text-on-surface-variant">Avg Price</p>
                 <p className="font-display text-2xl font-bold text-primary">
-                  ${platformStats.avgPricePerKwh.toFixed(2)}
+                  ${stats?.avgPricePerKwh.toFixed(2) ?? "..."}
                   <span className="body-md text-on-surface-variant font-normal">
                     /kWh
                   </span>
@@ -188,7 +196,7 @@ export default function MarketplacePage() {
               <div>
                 <p className="label-md text-on-surface-variant">Grid Price</p>
                 <p className="font-display text-2xl font-bold text-secondary">
-                  ${platformStats.gridPricePerKwh.toFixed(2)}
+                  ${stats?.gridPricePerKwh.toFixed(2) ?? "..."}
                   <span className="body-md text-on-surface-variant font-normal">
                     /kWh
                   </span>
@@ -199,12 +207,10 @@ export default function MarketplacePage() {
                 <TrendingUp className="h-4 w-4 text-primary" />
                 <span className="label-md text-primary">
                   Save up to{" "}
-                  {Math.round(
-                    (1 -
-                      platformStats.avgPricePerKwh /
-                        platformStats.gridPricePerKwh) *
-                      100
-                  )}
+                  {stats
+                    ? Math.round((1 - stats.avgPricePerKwh / stats.gridPricePerKwh) * 100)
+                    : "..."
+                  }
                   % vs grid
                 </span>
               </div>
@@ -216,19 +222,19 @@ export default function MarketplacePage() {
                   Active Listings
                 </p>
                 <p className="font-display text-xl font-bold text-on-surface">
-                  {platformStats.activeListingsCount}
+                  {stats?.activeListingsCount ?? "..."}
                 </p>
               </div>
 
               <div>
                 <p className="label-md text-on-surface-variant">Total Traded</p>
                 <p className="font-display text-xl font-bold text-on-surface">
-                  {platformStats.totalKwhTraded.toLocaleString()} kWh
+                  {stats?.totalKwhTraded.toLocaleString() ?? "..."} kWh
                 </p>
               </div>
 
               <Chip variant="active">
-                {platformStats.activeHouseholds} households online
+                {stats?.activeHouseholds ?? "..."} households online
               </Chip>
             </div>
           </div>

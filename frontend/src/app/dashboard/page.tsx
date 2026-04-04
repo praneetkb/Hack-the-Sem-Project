@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
@@ -16,29 +16,38 @@ import {
   TrendingUp,
 } from "lucide-react";
 import {
-  currentUser,
-  userStats,
-  trades,
-  forecast,
-  getHourlyData,
-} from "@/lib/mock-data";
-import type { TradeStatus } from "@/types";
+  getUserStats,
+  getTrades,
+  getHourlyChartData,
+  getCurrentUser,
+} from "@/lib/api";
+import { EnergyForecastCard } from "@/components/charts/energy-forecast-card";
+import type { TradeStatus, Trade } from "@/types";
+
+interface DashboardStats {
+  totalKwhSold: number;
+  totalKwhBought: number;
+  creditBalance: number;
+  carbonOffsetKg: number;
+}
 
 export default function DashboardPage() {
-  const hourlyData = useMemo(() => getHourlyData(), []);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [userTrades, setUserTrades] = useState<Trade[]>([]);
+  const [hourlyData, setHourlyData] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
 
-  const userTrades = trades
-    .filter(
-      (t) => t.buyerId === currentUser.id || t.sellerId === currentUser.id
-    )
-    .slice(0, 5);
-
-  const tomorrowSurplus = forecast.reduce(
-    (sum, f) => sum + f.predictedSurplus,
-    0
-  );
-  const avgConfidence =
-    forecast.reduce((sum, f) => sum + f.confidence, 0) / forecast.length;
+  useEffect(() => {
+    getUserStats().then(setStats);
+    getTrades("h1").then((data) => {
+      const sorted = [...data].sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setUserTrades(sorted.slice(0, 5));
+    });
+    getHourlyChartData().then(setHourlyData);
+    getCurrentUser().then(setUser);
+  }, []);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -46,7 +55,7 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="headline-lg text-on-surface">
-            Welcome back, {currentUser.name.split(" ")[1]}
+            Welcome back, {user?.name ? user.name.split(" ")[1] : "..."}
           </h1>
           <p className="body-lg text-on-surface-variant mt-1">
             Your energy dashboard at a glance.
@@ -72,7 +81,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard
           label="Total Sold"
-          value={userStats.totalKwhSold}
+          value={stats?.totalKwhSold ?? 0}
           unit="kWh"
           icon={Zap}
           trend="up"
@@ -80,7 +89,7 @@ export default function DashboardPage() {
         />
         <StatCard
           label="Total Bought"
-          value={userStats.totalKwhBought}
+          value={stats?.totalKwhBought ?? 0}
           unit="kWh"
           icon={ShoppingCart}
           trend="up"
@@ -88,7 +97,7 @@ export default function DashboardPage() {
         />
         <StatCard
           label="Credit Balance"
-          value={userStats.creditBalance}
+          value={stats?.creditBalance ?? 0}
           unit="credits"
           icon={Wallet}
           trend="up"
@@ -96,7 +105,7 @@ export default function DashboardPage() {
         />
         <StatCard
           label="Carbon Offset"
-          value={userStats.carbonOffsetKg}
+          value={stats?.carbonOffsetKg ?? 0}
           unit="kg CO₂"
           icon={Leaf}
           trend="up"
@@ -115,50 +124,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Forecast Widget */}
-        <div className="bg-surface-lowest rounded-xl p-6 shadow-soft">
-          <h2 className="headline-sm text-on-surface mb-4">
-            Tomorrow&apos;s Forecast
-          </h2>
-
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-tertiary/15">
-              <TrendingUp className="h-6 w-6 text-tertiary" />
-            </div>
-            <div>
-              <p className="font-display text-2xl font-bold text-on-surface">
-                {tomorrowSurplus.toFixed(1)} kWh
-              </p>
-              <p className="label-md text-on-surface-variant">
-                Predicted surplus
-              </p>
-            </div>
-          </div>
-
-          {/* Confidence Bar */}
-          <div className="mb-4">
-            <div className="flex justify-between mb-1">
-              <span className="label-md text-on-surface-variant">
-                Confidence
-              </span>
-              <span className="label-md text-primary">
-                {(avgConfidence * 100).toFixed(0)}%
-              </span>
-            </div>
-            <div className="h-2 rounded-full bg-surface-low overflow-hidden">
-              <div
-                className="h-full rounded-full energy-gradient transition-all"
-                style={{ width: `${avgConfidence * 100}%` }}
-              />
-            </div>
-          </div>
-
-          <p className="body-md text-on-surface-variant mb-4">
-            Based on your past 7 days and weather forecast. Peak surplus
-            expected around noon.
-          </p>
-
+        <div className="flex flex-col gap-4">
+          <EnergyForecastCard householdId="h1" />
           <Link href="/list">
-            <Button variant="tertiary" size="sm" className="w-full">
+            <Button variant="tertiary" size="sm" className="w-full h-12 shadow-soft">
               Pre-list surplus for tomorrow
             </Button>
           </Link>
@@ -193,7 +162,7 @@ export default function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-surface-highest">
                 {userTrades.map((trade) => {
-                  const isSeller = trade.sellerId === currentUser.id;
+                  const isSeller = trade.sellerId === "h1";
                   return (
                     <tr key={trade.id}>
                       <td className="py-3 body-md text-on-surface">
