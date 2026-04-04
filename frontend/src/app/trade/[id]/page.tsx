@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { use } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   ExternalLink,
 } from "lucide-react";
-import { listings, platformStats } from "@/lib/mock-data";
+import { getListing, createTrade, getPlatformStats } from "@/lib/api";
+import type { Listing } from "@/types";
 
 export default function TradeConfirmationPage({
   params,
@@ -22,10 +23,32 @@ export default function TradeConfirmationPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const listing = listings.find((l) => l.id === id);
-  const [quantity, setQuantity] = useState(listing?.kwhAvailable ?? 0);
+  const [listing, setListing] = useState<Listing | null>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [quantity, setQuantity] = useState(0);
   const [confirmed, setConfirmed] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([getListing(id), getPlatformStats()]).then(([l, s]) => {
+      if (l) {
+        setListing(l);
+        setQuantity(l.kwhAvailable);
+      }
+      setStats(s);
+      setLoading(false);
+    });
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-20 text-center">
+        <div className="h-8 w-8 rounded-full border-4 border-primary/30 border-t-primary animate-spin mx-auto mb-4" />
+        <p className="body-md text-on-surface-variant">Loading listing details...</p>
+      </div>
+    );
+  }
 
   if (!listing) {
     return (
@@ -42,17 +65,25 @@ export default function TradeConfirmationPage({
     );
   }
 
-  const totalCost = Math.round(quantity * listing.pricePerKwh * 100) / 100;
+  const totalCost = Math.round(quantity * (listing?.pricePerKwh ?? 0) * 100) / 100;
   const gridCost =
-    Math.round(quantity * platformStats.gridPricePerKwh * 100) / 100;
+    Math.round(quantity * (stats?.gridPricePerKwh ?? 0.32) * 100) / 100;
   const savings = Math.round((gridCost - totalCost) * 100) / 100;
 
   const handleConfirm = async () => {
     setProcessing(true);
-    // Simulate blockchain transaction
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setProcessing(false);
-    setConfirmed(true);
+    try {
+      await createTrade({
+        listingId: id,
+        kwhAmount: quantity,
+      });
+      setConfirmed(true);
+    } catch (err) {
+      console.error("Trade failed", err);
+      alert("Trade failed. Please check the console for details.");
+    } finally {
+      setProcessing(false);
+    }
   };
 
   if (confirmed) {
@@ -112,11 +143,18 @@ export default function TradeConfirmationPage({
             </button>
           </div>
 
-          <Link href="/marketplace">
-            <Button variant="primary" size="lg">
-              Back to Marketplace
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link href="/dashboard" className="w-full sm:w-auto">
+              <Button variant="primary" size="lg" className="w-full">
+                View My Dashboard
+              </Button>
+            </Link>
+            <Link href="/marketplace" className="w-full sm:w-auto">
+              <Button variant="secondary" size="lg" className="w-full">
+                Back to Marketplace
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -199,7 +237,7 @@ export default function TradeConfirmationPage({
               Grid price per kWh
             </span>
             <span className="body-md text-on-surface-variant line-through">
-              ${platformStats.gridPricePerKwh.toFixed(2)}
+              ${(stats?.gridPricePerKwh ?? 0.32).toFixed(2)}
             </span>
           </div>
           <hr className="border-none h-px bg-surface-highest" />
@@ -218,7 +256,7 @@ export default function TradeConfirmationPage({
         </div>
 
         <Chip variant="active">
-          {Math.round((1 - listing.pricePerKwh / platformStats.gridPricePerKwh) * 100)}% cheaper than grid
+          {Math.round((1 - listing.pricePerKwh / (stats?.gridPricePerKwh ?? 0.32)) * 100)}% cheaper than grid
         </Chip>
       </div>
 
