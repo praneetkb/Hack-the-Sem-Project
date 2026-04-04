@@ -106,7 +106,7 @@ const trades = [
     kwhAmount: 4.0,
     pricePerKwh: 0.15,
     totalCost: 0.6,
-    status: "matched",
+    status: "settled",
     createdAt: "2026-03-20T10:30:00Z",
   },
   {

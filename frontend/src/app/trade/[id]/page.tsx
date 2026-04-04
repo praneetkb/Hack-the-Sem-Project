@@ -271,8 +271,8 @@ export default function TradeConfirmationPage({
           <div className="flex items-center gap-4">
             <input
               type="range"
-              min={0.5}
-              max={currentListing?.kwhAvailable ?? 0}
+              min={0.1}
+              max={currentListing?.kwhAvailable || 5.0}
               step={0.1}
               value={quantity}
               onChange={(e) => setQuantity(parseFloat(e.target.value))}

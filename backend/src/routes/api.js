@@ -143,7 +143,12 @@ router.get('/trades', (req, res) => {
     }
     const filtered = store.trades.filter(
         (t) => t.buyerId === householdId || t.sellerId === householdId
-    );
+    ).map(t => {
+        // Force all "matched" or undefined to "settled" for demo
+        const status = (t.status === "matched" || !t.status) ? "settled" : t.status;
+        return { ...t, status };
+    });
+    console.log(`[API] Returning ${filtered.length} trades with normalized statuses.`);
     res.json(filtered);
 });
 
@@ -164,13 +169,14 @@ router.post('/trades', (req, res) => {
         kwhAmount: data.kwhAmount,
         pricePerKwh: listing.pricePerKwh,
         totalCost: totalCost,
-        status: "matched",
-        txHash: data.solanaSignature || null,
+        status: "settled",
+        txHash: data.solanaSignature || data.signature || null,
         createdAt: new Date().toISOString(),
     };
 
     // Update balances and inventory
     currentUser.creditBalance = Math.round((currentUser.creditBalance - totalCost) * 100) / 100;
+    console.log(`[TRADE] New balance for ${currentUser.name}: ${currentUser.creditBalance}`);
 
     // Inventory Deduction
     listing.kwhAvailable = Math.max(0, Math.round((listing.kwhAvailable - data.kwhAmount) * 100) / 100);

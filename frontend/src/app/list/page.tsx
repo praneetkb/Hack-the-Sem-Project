@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import {
@@ -12,42 +12,87 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import {
-  currentUser,
-  meterReadings,
-  listings,
-  platformStats,
-} from "@/lib/mock-data";
-import { createListing } from "@/lib/api";
+  getMeterReadings,
+  getAllListings,
+  getCurrentUser,
+  getPlatformStats,
+  createListing
+} from "@/lib/api";
+import type { Listing } from "@/types";
 
 export default function ListSurplusPage() {
-  // Calculate current surplus from latest meter reading
-  const latestReading = meterReadings[meterReadings.length - 1];
-  const currentSurplus = useMemo(() => {
-    const recentReadings = meterReadings.slice(-4); // last hour
-    return recentReadings.reduce((sum, r) => sum + Math.max(0, r.surplus), 0);
-  }, []);
+  const [user, setUser] = useState<any>(null);
+  const [readings, setReadings] = useState<any[]>([]);
+  const [activeListings, setActiveListings] = useState<Listing[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const [kwhToList, setKwhToList] = useState(
-    Math.round(currentSurplus * 10) / 10
-  );
-  const [pricePerKwh, setPricePerKwh] = useState(platformStats.avgPricePerKwh);
+  const [kwhToList, setKwhToList] = useState(0);
+  const [pricePerKwh, setPricePerKwh] = useState(0.17);
   const [submitted, setSubmitted] = useState(false);
 
-  // User's active listings
-  const myListings = listings.filter(
-    (l) => l.householdId === currentUser.id && l.status === "active"
-  );
+  const fetchData = async () => {
+    try {
+      const [u, l, s] = await Promise.all([
+        getCurrentUser(),
+        getAllListings(),
+        getPlatformStats()
+      ]);
+
+      setUser(u);
+      setStats(s);
+      setPricePerKwh(s.avgPricePerKwh || 0.17);
+
+      // Filter for user's active listings
+      setActiveListings(l.filter((item: Listing) =>
+        item.householdId === u.id && item.status === "active"
+      ));
+
+      const r = await getMeterReadings(u.id);
+      setReadings(r);
+
+      // Calculate surplus and set initial kwhToList
+      const recentReadings = r.slice(-4);
+      const surplus = recentReadings.reduce((sum: number, r: any) => sum + Math.max(0, r.surplus), 0);
+      setKwhToList(Math.round(surplus * 10) / 10);
+
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to load list page data:", err);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const latestReading = readings.length > 0 ? readings[readings.length - 1] : { generation: 0, consumption: 0, surplus: 0 };
+
+  const currentSurplus = useMemo(() => {
+    const recentReadings = readings.slice(-4);
+    return recentReadings.reduce((sum, r) => sum + Math.max(0, r.surplus), 0);
+  }, [readings]);
 
   const handleSubmit = async () => {
     try {
       await createListing({ kwhAvailable: kwhToList, pricePerKwh });
       setSubmitted(true);
+      fetchData(); // Refresh list
       setTimeout(() => setSubmitted(false), 3000);
-      // Wait to re-fetch or clear if we want, but letting them see success is enough for now.
     } catch (err) {
       console.error("Failed to list energy:", err);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-20 text-center">
+        <div className="h-8 w-8 rounded-full border-4 border-primary/30 border-t-primary animate-spin mx-auto mb-4" />
+        <p className="body-md text-on-surface-variant">Loading energy data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
@@ -59,7 +104,7 @@ export default function ListSurplusPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Form Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Current Surplus Display */}
+          {/* Current Energy Status */}
           <div className="bg-surface-lowest rounded-xl p-6 shadow-soft">
             <h2 className="headline-sm text-on-surface mb-4">
               Current Energy Status
@@ -107,7 +152,7 @@ export default function ListSurplusPage() {
             </div>
           </div>
 
-          {/* Listing Form */}
+          {/* Create Listing Form */}
           <div className="bg-surface-lowest rounded-xl p-6 shadow-soft">
             <h2 className="headline-sm text-on-surface mb-6">
               Create Listing
@@ -122,7 +167,7 @@ export default function ListSurplusPage() {
                 <input
                   type="range"
                   min={0.1}
-                  max={Math.max(currentSurplus, 0.1)}
+                  max={50} // Allow listing up to 50kWh for demo flexibility
                   step={0.1}
                   value={kwhToList}
                   onChange={(e) => setKwhToList(parseFloat(e.target.value))}
@@ -157,10 +202,10 @@ export default function ListSurplusPage() {
               </div>
               <div className="flex items-center gap-4 mt-2">
                 <span className="label-md text-on-surface-variant">
-                  Market avg: ${platformStats.avgPricePerKwh.toFixed(2)}/kWh
+                  Market avg: ${stats?.avgPricePerKwh.toFixed(2)}/kWh
                 </span>
                 <span className="label-md text-on-surface-variant">
-                  Grid: ${platformStats.gridPricePerKwh.toFixed(2)}/kWh
+                  Grid: ${stats?.gridPricePerKwh.toFixed(2)}/kWh
                 </span>
               </div>
             </div>
@@ -177,7 +222,7 @@ export default function ListSurplusPage() {
               </div>
             </div>
 
-            {/* Submit */}
+            {/* Submit Button */}
             {submitted ? (
               <div className="flex items-center justify-center gap-2 py-3 text-primary">
                 <CheckCircle2 className="h-5 w-5" />
@@ -212,15 +257,14 @@ export default function ListSurplusPage() {
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-primary" />
                 <span className="body-md text-on-surface-variant">
-                  Demand:{" "}
-                  <span className="font-medium text-primary">Medium</span>
+                  Demand: <span className="font-medium text-primary">Medium</span>
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-secondary" />
                 <span className="body-md text-on-surface-variant">
-                  {platformStats.activeHouseholds} active buyers
+                  {stats?.activeHouseholds} active buyers
                 </span>
               </div>
 
@@ -241,9 +285,9 @@ export default function ListSurplusPage() {
               My Active Listings
             </h3>
 
-            {myListings.length > 0 ? (
+            {activeListings.length > 0 ? (
               <div className="space-y-3">
-                {myListings.map((listing) => (
+                {activeListings.map((listing) => (
                   <div
                     key={listing.id}
                     className="flex items-center justify-between bg-surface-low rounded-lg p-3"

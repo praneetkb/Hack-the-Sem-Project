@@ -38,15 +38,22 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    getUserStats().then(setStats);
-    getTrades("h1").then((data) => {
-      const sorted = [...data].sort((a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      setUserTrades(sorted.slice(0, 5));
-    });
+    const refreshData = () => {
+      getUserStats().then(setStats);
+      getTrades("h1").then((data) => {
+        const sorted = [...data].sort((a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setUserTrades(sorted.slice(0, 5));
+      });
+      getCurrentUser().then(setUser);
+    };
+
+    refreshData();
     getHourlyChartData().then(setHourlyData);
-    getCurrentUser().then(setUser);
+
+    const interval = setInterval(refreshData, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   return (

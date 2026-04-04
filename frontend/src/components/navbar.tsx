@@ -14,8 +14,8 @@ import {
 import { getCurrentUser } from "@/lib/api";
 
 const navLinks = [
-  { href: "/marketplace", label: "Marketplace", icon: Store },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/marketplace", label: "Marketplace", icon: Store },
   { href: "/list", label: "Sell Energy", icon: PlusCircle },
 ];
 
@@ -24,7 +24,15 @@ export function Navbar() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    // Initial fetch
     getCurrentUser().then(setUser);
+
+    // Dynamic sync for credits/balance during demo
+    const interval = setInterval(() => {
+      getCurrentUser().then(setUser);
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
