@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
@@ -16,22 +16,38 @@ import {
   TrendingUp,
 } from "lucide-react";
 import {
-  currentUser,
-  userStats,
-  trades,
-  getHourlyData,
-} from "@/lib/mock-data";
+  getUserStats,
+  getTrades,
+  getHourlyChartData,
+  getCurrentUser,
+} from "@/lib/api";
 import { EnergyForecastCard } from "@/components/charts/energy-forecast-card";
-import type { TradeStatus } from "@/types";
+import type { TradeStatus, Trade } from "@/types";
+
+interface DashboardStats {
+  totalKwhSold: number;
+  totalKwhBought: number;
+  creditBalance: number;
+  carbonOffsetKg: number;
+}
 
 export default function DashboardPage() {
-  const hourlyData = useMemo(() => getHourlyData(), []);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [userTrades, setUserTrades] = useState<Trade[]>([]);
+  const [hourlyData, setHourlyData] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
 
-  const userTrades = trades
-    .filter(
-      (t) => t.buyerId === currentUser.id || t.sellerId === currentUser.id
-    )
-    .slice(0, 5);
+  useEffect(() => {
+    getUserStats().then(setStats);
+    getTrades("h1").then((data) => {
+      const sorted = [...data].sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setUserTrades(sorted.slice(0, 5));
+    });
+    getHourlyChartData().then(setHourlyData);
+    getCurrentUser().then(setUser);
+  }, []);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -39,7 +55,7 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="headline-lg text-on-surface">
-            Welcome back, {currentUser.name.split(" ")[1]}
+            Welcome back, {user?.name ? user.name.split(" ")[1] : "..."}
           </h1>
           <p className="body-lg text-on-surface-variant mt-1">
             Your energy dashboard at a glance.
@@ -65,7 +81,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard
           label="Total Sold"
-          value={userStats.totalKwhSold}
+          value={stats?.totalKwhSold ?? 0}
           unit="kWh"
           icon={Zap}
           trend="up"
@@ -73,7 +89,7 @@ export default function DashboardPage() {
         />
         <StatCard
           label="Total Bought"
-          value={userStats.totalKwhBought}
+          value={stats?.totalKwhBought ?? 0}
           unit="kWh"
           icon={ShoppingCart}
           trend="up"
@@ -81,7 +97,7 @@ export default function DashboardPage() {
         />
         <StatCard
           label="Credit Balance"
-          value={userStats.creditBalance}
+          value={stats?.creditBalance ?? 0}
           unit="credits"
           icon={Wallet}
           trend="up"
@@ -89,7 +105,7 @@ export default function DashboardPage() {
         />
         <StatCard
           label="Carbon Offset"
-          value={userStats.carbonOffsetKg}
+          value={stats?.carbonOffsetKg ?? 0}
           unit="kg CO₂"
           icon={Leaf}
           trend="up"
@@ -146,7 +162,7 @@ export default function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-surface-highest">
                 {userTrades.map((trade) => {
-                  const isSeller = trade.sellerId === currentUser.id;
+                  const isSeller = trade.sellerId === "h1";
                   return (
                     <tr key={trade.id}>
                       <td className="py-3 body-md text-on-surface">
