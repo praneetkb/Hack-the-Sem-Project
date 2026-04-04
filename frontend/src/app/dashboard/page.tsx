@@ -19,9 +19,9 @@ import {
   currentUser,
   userStats,
   trades,
-  forecast,
   getHourlyData,
 } from "@/lib/mock-data";
+import { EnergyForecastCard } from "@/components/charts/energy-forecast-card";
 import type { TradeStatus } from "@/types";
 
 export default function DashboardPage() {
@@ -32,13 +32,6 @@ export default function DashboardPage() {
       (t) => t.buyerId === currentUser.id || t.sellerId === currentUser.id
     )
     .slice(0, 5);
-
-  const tomorrowSurplus = forecast.reduce(
-    (sum, f) => sum + f.predictedSurplus,
-    0
-  );
-  const avgConfidence =
-    forecast.reduce((sum, f) => sum + f.confidence, 0) / forecast.length;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -115,50 +108,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Forecast Widget */}
-        <div className="bg-surface-lowest rounded-xl p-6 shadow-soft">
-          <h2 className="headline-sm text-on-surface mb-4">
-            Tomorrow&apos;s Forecast
-          </h2>
-
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-tertiary/15">
-              <TrendingUp className="h-6 w-6 text-tertiary" />
-            </div>
-            <div>
-              <p className="font-display text-2xl font-bold text-on-surface">
-                {tomorrowSurplus.toFixed(1)} kWh
-              </p>
-              <p className="label-md text-on-surface-variant">
-                Predicted surplus
-              </p>
-            </div>
-          </div>
-
-          {/* Confidence Bar */}
-          <div className="mb-4">
-            <div className="flex justify-between mb-1">
-              <span className="label-md text-on-surface-variant">
-                Confidence
-              </span>
-              <span className="label-md text-primary">
-                {(avgConfidence * 100).toFixed(0)}%
-              </span>
-            </div>
-            <div className="h-2 rounded-full bg-surface-low overflow-hidden">
-              <div
-                className="h-full rounded-full energy-gradient transition-all"
-                style={{ width: `${avgConfidence * 100}%` }}
-              />
-            </div>
-          </div>
-
-          <p className="body-md text-on-surface-variant mb-4">
-            Based on your past 7 days and weather forecast. Peak surplus
-            expected around noon.
-          </p>
-
+        <div className="flex flex-col gap-4">
+          <EnergyForecastCard householdId="h1" />
           <Link href="/list">
-            <Button variant="tertiary" size="sm" className="w-full">
+            <Button variant="tertiary" size="sm" className="w-full h-12 shadow-soft">
               Pre-list surplus for tomorrow
             </Button>
           </Link>
