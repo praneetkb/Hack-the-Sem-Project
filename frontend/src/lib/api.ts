@@ -75,6 +75,7 @@ export async function getTrades(householdId?: string) {
 export async function createTrade(data: {
   listingId: string;
   kwhAmount: number;
+  solanaSignature?: string;
 }): Promise<Trade> {
   const res = await fetch(`${API_BASE}/trades`, {
     method: "POST",
