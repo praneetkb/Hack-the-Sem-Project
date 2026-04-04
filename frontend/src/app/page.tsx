@@ -1,8 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { TiltCard } from "@/components/ui/tilt-card";
 import { Zap, ArrowRight, Sun, RefreshCw, Leaf, Building2, Shield } from "lucide-react";
+import { NeighborhoodMap } from "@/components/visualizations/neighborhood-map";
 
 export default function LandingPage() {
   return (
@@ -13,48 +13,36 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Column: Text */}
             <div>
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5">
-                <Sun className="h-4 w-4 text-primary" />
-                <span className="label-md text-primary">
-                  Peer-to-Peer Solar Energy Trading
-                </span>
-              </div>
-
               <h1 className="display-lg text-on-surface mb-6">
-                Trade Surplus Energy<br />
-                with Your Neighbors.
+                Stop Selling to the Grid for 3 Cents. <br />
+                <span className="text-primary">Sell to Your Neighbor for 15!</span>
               </h1>
 
               <p className="body-lg text-on-surface-variant max-w-xl mb-10">
-                Sell your surplus solar energy directly to nearby households at
-                fair prices. Every transaction is secured on the Solana
-                blockchain — transparent, instant, and decentralized.
+                You generate the energy, you should set the price.
+                Sell your surplus solar directly to nearby households
+                secured on the Solana blockchain — transparent, instant, and decentralized.
               </p>
 
               <div className="flex flex-col gap-4 sm:flex-row">
                 <Link href="/marketplace">
                   <Button variant="primary" size="lg">
                     <Zap className="h-5 w-5" />
-                    Start Trading
+                    Sell My Surplus
                   </Button>
                 </Link>
                 <Link href="#how-it-works">
                   <Button variant="secondary" size="lg">
-                    Learn More
+                    See How It Works
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
               </div>
             </div>
 
-            {/* Right Column: Image */}
-            <div className="relative h-[500px] rounded-2xl overflow-hidden shadow-soft">
-              <Image
-                src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&q=80"
-                alt="Solar panels on rooftop"
-                fill
-                className="object-cover"
-              />
+            {/* Right Column: Live Animation */}
+            <div className="relative h-[500px] rounded-2xl overflow-hidden shadow-soft border border-outline-variant/30">
+              <NeighborhoodMap />
             </div>
           </div>
         </div>
@@ -256,11 +244,11 @@ export default function LandingPage() {
               </p>
               <div className="relative rounded-xl overflow-hidden bg-secondary p-4">
                 <svg viewBox="0 0 280 72" className="w-full h-16" preserveAspectRatio="none">
-                  <rect x="4"   y="52" width="16" height="20" rx="2" fill="#2ecc71" opacity="0.6" />
-                  <rect x="24"  y="42" width="16" height="30" rx="2" fill="#2ecc71" opacity="0.7" />
-                  <rect x="44"  y="32" width="16" height="40" rx="2" fill="#2ecc71" opacity="0.8" />
-                  <rect x="64"  y="22" width="16" height="50" rx="2" fill="#2ecc71" />
-                  <rect x="84"  y="38" width="16" height="34" rx="2" fill="#2ecc71" opacity="0.7" />
+                  <rect x="4" y="52" width="16" height="20" rx="2" fill="#2ecc71" opacity="0.6" />
+                  <rect x="24" y="42" width="16" height="30" rx="2" fill="#2ecc71" opacity="0.7" />
+                  <rect x="44" y="32" width="16" height="40" rx="2" fill="#2ecc71" opacity="0.8" />
+                  <rect x="64" y="22" width="16" height="50" rx="2" fill="#2ecc71" />
+                  <rect x="84" y="38" width="16" height="34" rx="2" fill="#2ecc71" opacity="0.7" />
                   <rect x="104" y="44" width="16" height="28" rx="2" fill="#2ecc71" opacity="0.6" />
                   <rect x="124" y="48" width="16" height="24" rx="2" fill="#2ecc71" opacity="0.6" />
                   <rect x="144" y="40" width="16" height="32" rx="2" fill="#2ecc71" opacity="0.7" />
