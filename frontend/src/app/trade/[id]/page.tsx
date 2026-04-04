@@ -19,7 +19,7 @@ import { connectWallet, getProvider } from "@/lib/wallet";
 import { sendEnergyPayment } from "@/lib/solana";
 import { getWalletBalance, getTransactionHistory } from "@/lib/wallet";
 import { currentUser, households, trades } from "@/lib/mock-data";
-import { getListing, getPlatformStats } from "@/lib/api";
+import { getListing, getPlatformStats, createTrade } from "@/lib/api";
 import "@/types/index";
 import type { Listing } from "@/types";
 
@@ -47,11 +47,13 @@ export default function TradeConfirmationPage({
 
   const [txHash, setTxHash] = useState<string | null>(null); // for storing transaction signature/ID after payment
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([getListing(id), getPlatformStats()]).then(([l, s]) => {
       if (l) {
         setListing(l);
+        setCurrentListing(l);
         setQuantity(l.kwhAvailable);
       }
       setStats(s);
@@ -121,49 +123,28 @@ export default function TradeConfirmationPage({
       console.log("Transaction Signature:", signature);
       setTxHash(signature);
 
-      // Step 3: Update energy quantities
-      setCurrentListing((prev) =>
-        prev
-          ? { ...prev, kwhAvailable: prev.kwhAvailable - quantity }
-          : prev
-      );
-
-      // Optional: update buyer's total purchased energy in mock
-      currentUser.energyPurchased = (currentUser.energyPurchased || 0) + quantity;
-
-      // Step 4: Add trade record to mockTrades
-      /* 
-        const newTrade = {
-        id: `t${Date.now()}`,
-        buyerId: currentUser.id,
-        buyerName: currentUser.name,
-        sellerId: listing.householdId,
-        sellerName: listing.householdName,
-        listingId: listing.id,
+      // Step 3: Record trade in Backend (Sync inventory/credits)
+      const trade = await createTrade({
+        listingId: currentListing.id,
         kwhAmount: quantity,
-        pricePerKwh: listing.pricePerKwh,
-        totalCost,
-        status: "matched",
-        txHash: signature,
-        createdAt: new Date().toISOString(),
-      };
-      setMockTrades((prev) => [...prev, newTrade]);
-      console.log("New trade recorded:", newTrade);
-      */
+        solanaSignature: signature
+      });
 
-      // Step 5: refresh wallet balance & transaction history
-      const balance = await getWalletBalance(walletAddress);
-      setSolBalance(balance);
-      console.log("Updated wallet balance:", balance);
-      const txHistory = await getTransactionHistory(walletAddress);
-      console.log("Recent transactions:", txHistory);
+      console.log("Backend trade confirmed:", trade);
+      setTxHash(signature);
 
       setProcessing(false);
       setConfirmed(true);
-    } catch (err) {
+      setError(null);
+    } catch (err: any) {
       console.error("Transaction failed:", err);
-      alert("Transaction failed. Try again.");
       setProcessing(false);
+
+      if (err.message?.includes("User rejected")) {
+        setError("Payment cancelled. Please try again when ready.");
+      } else {
+        setError("Transaction failed. Check your wallet balance or network connection.");
+      }
     }
   };
 
@@ -346,6 +327,16 @@ export default function TradeConfirmationPage({
           {Math.round((1 - listing.pricePerKwh / (stats?.gridPricePerKwh ?? 0.32)) * 100)}% cheaper than grid
         </Chip>
       </div>
+
+      {/* Error Alert Overlay */}
+      {error && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl bg-red-50 p-4 border border-red-200">
+          <Shield className="h-5 w-5 text-red-600 shrink-0" />
+          <p className="body-md text-red-800 font-medium">
+            {error}
+          </p>
+        </div>
+      )}
 
       {/* Blockchain Info */}
       <div className="flex items-center gap-3 rounded-xl bg-secondary/5 p-4 mb-8">
