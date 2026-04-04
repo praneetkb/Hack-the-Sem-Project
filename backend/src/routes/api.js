@@ -3,6 +3,7 @@ const router = express.Router();
 const store = require('../data/store');
 const households = require('../data/households');
 const { getRankedListings } = require('../services/matchingService');
+const synaptic = require('synaptic');
 
 const currentUser = households[0];
 
@@ -57,11 +58,12 @@ router.get('/households/me', (req, res) => {
 function generateMeterReadings(householdId) {
     const readings = [];
     const now = new Date();
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
+    // Go back 3 full days
+    const startOfThreeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    startOfThreeDaysAgo.setHours(0, 0, 0, 0);
 
-    for (let i = 0; i < 96; i++) {
-        const timestamp = new Date(startOfDay.getTime() + i * 15 * 60 * 1000);
+    for (let i = 0; i < 288; i++) {
+        const timestamp = new Date(startOfThreeDaysAgo.getTime() + i * 15 * 60 * 1000);
         const hour = timestamp.getHours() + timestamp.getMinutes() / 60;
 
         const peakGen = 4.2;
@@ -169,21 +171,72 @@ router.post('/trades', (req, res) => {
 });
 
 router.get('/forecast/:householdId', (req, res) => {
-    const forecastData = Array.from({ length: 24 }, (_, h) => {
-        const peakSurplus = 3.8;
-        const predictedSurplus =
-            h >= 5 && h <= 19
-                ? peakSurplus *
-                Math.exp(-0.5 * Math.pow((h - 12) / 2.5, 2)) -
-                0.5
-                : -0.5;
+    const { householdId } = req.params;
+
+    if (!cachedMeterReadings[householdId]) {
+        cachedMeterReadings[householdId] = generateMeterReadings(householdId);
+    }
+
+    const history = cachedMeterReadings[householdId];
+    const sequence = history.map((r) => r.surplus / 10.0);
+
+    // Build the Training set using a sliding window of 4 points (1 hour)
+    const trainingSet = [];
+    const windowSize = 4;
+    for (let i = 0; i < sequence.length - windowSize; i++) {
+        trainingSet.push({
+            input: sequence.slice(i, i + windowSize),
+            output: [sequence[i + windowSize]]
+        });
+    }
+
+    // Instantiate LSTM with window input
+    const LSTM = new synaptic.Architect.LSTM(windowSize, 6, 1);
+    const trainer = new synaptic.Trainer(LSTM);
+
+    // Deep train to capture the intensity trends
+    trainer.train(trainingSet, {
+        rate: 0.15,
+        iterations: 600,
+        error: 0.01,
+        clear: true
+    });
+
+    // Use LSTM to calculate a predicted "Energy Intensity Shift" (Neural Belief)
+    let currentWindow = sequence.slice(-windowSize);
+    const hourlyIntensity = [];
+    for (let i = 0; i < 24; i++) {
+        const pred = LSTM.activate(currentWindow);
+        hourlyIntensity.push(pred[0]);
+        // Slide window forward with the neural belief
+        currentWindow = [...currentWindow.slice(1), pred[0]];
+    }
+
+    const currentHourShift = new Date().getHours();
+
+    // Final Forecast: Modulate a standard solar curve using the Neural Network's detected intensity
+    const forecastData = Array.from({ length: 24 }, (_, i) => {
+        const hour = (currentHourShift + i) % 24;
+
+        // Base solar generation curve (Bell curve centered at Noon)
+        const peakWeight = 4.2;
+        const solarCurve = hour >= 6 && hour <= 18
+            ? Math.exp(-0.5 * Math.pow((hour - 12) / 2.5, 2))
+            : 0;
+
+        // The LSTM shift: Adjusts the amplitude based on historical patterns detected
+        // Mapping [0,1] neural output to a [0.7, 1.2] correction factor
+        const neuralCorrection = 0.7 + (hourlyIntensity[i] * 0.5);
+        const finalSurplus = solarCurve * peakWeight * neuralCorrection;
+
         return {
-            hour: h,
-            predictedSurplus: Math.round(Math.max(0, predictedSurplus) * 100) / 100,
-            confidence: 0.7 + Math.random() * 0.25,
+            hour: hour,
+            predictedSurplus: Math.round(Math.max(0, finalSurplus) * 100) / 100,
+            confidence: 0.85 - (i * 0.015),
         };
     });
-    res.json(forecastData);
+
+    res.json(forecastData.sort((a, b) => a.hour - b.hour));
 });
 
 router.get('/platform/stats', (req, res) => {
