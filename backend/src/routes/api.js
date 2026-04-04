@@ -165,11 +165,18 @@ router.post('/trades', (req, res) => {
         pricePerKwh: listing.pricePerKwh,
         totalCost: totalCost,
         status: "matched",
+        txHash: data.solanaSignature || null,
         createdAt: new Date().toISOString(),
     };
 
-    // Update balances
+    // Update balances and inventory
     currentUser.creditBalance = Math.round((currentUser.creditBalance - totalCost) * 100) / 100;
+
+    // Inventory Deduction
+    listing.kwhAvailable = Math.max(0, Math.round((listing.kwhAvailable - data.kwhAmount) * 100) / 100);
+    if (listing.kwhAvailable <= 0) {
+        listing.status = "expired";
+    }
 
     store.trades.push(newTrade);
     res.json(newTrade);
