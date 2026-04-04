@@ -152,6 +152,8 @@ router.post('/trades', (req, res) => {
     const listing = store.listings.find((l) => l.id === data.listingId);
     if (!listing) return res.status(404).json({ error: "Listing not found" });
 
+    const totalCost = Math.round(data.kwhAmount * listing.pricePerKwh * 100) / 100;
+
     const newTrade = {
         id: `t${Date.now()}`,
         buyerId: currentUser.id,
@@ -161,11 +163,14 @@ router.post('/trades', (req, res) => {
         listingId: data.listingId,
         kwhAmount: data.kwhAmount,
         pricePerKwh: listing.pricePerKwh,
-        totalCost:
-            Math.round(data.kwhAmount * listing.pricePerKwh * 100) / 100,
+        totalCost: totalCost,
         status: "matched",
         createdAt: new Date().toISOString(),
     };
+
+    // Update balances
+    currentUser.creditBalance = Math.round((currentUser.creditBalance - totalCost) * 100) / 100;
+
     store.trades.push(newTrade);
     res.json(newTrade);
 });
@@ -253,11 +258,22 @@ router.get('/platform/stats', (req, res) => {
 });
 
 router.get('/report/:householdId', (req, res) => {
+    const { householdId } = req.params;
+
+    // Sum up real trades from the store
+    const sold = store.trades
+        .filter((t) => t.sellerId === householdId)
+        .reduce((sum, t) => sum + t.kwhAmount, 0);
+
+    const bought = store.trades
+        .filter((t) => t.buyerId === householdId)
+        .reduce((sum, t) => sum + t.kwhAmount, 0);
+
     const userStats = {
-        totalKwhSold: 34.2,
-        totalKwhBought: 12.8,
+        totalKwhSold: Math.round((34.2 + sold) * 10) / 10,
+        totalKwhBought: Math.round((12.8 + bought) * 10) / 10,
         creditBalance: currentUser.creditBalance,
-        carbonOffsetKg: Math.round(34.2 * 0.42),
+        carbonOffsetKg: Math.round((34.2 + sold) * 0.42),
     };
     res.json(userStats);
 });
