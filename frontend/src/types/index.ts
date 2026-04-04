@@ -6,9 +6,11 @@ export interface Household {
   email: string;
   role: HouseholdRole;
   creditBalance: number;
+  walletAddress?: string; // for solana payments
   location: { lat: number; lng: number; suburb: string };
   reliabilityScore: number;
   avatarUrl?: string;
+  energyPurchased?: number; // tracks total kWh bought
 }
 
 export interface MeterReading {

@@ -15,6 +15,11 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { listings, platformStats } from "@/lib/mock-data";
+import { connectWallet, getProvider } from "@/lib/wallet";
+import { sendEnergyPayment } from "@/lib/solana";
+import { getWalletBalance, getTransactionHistory } from "@/lib/wallet";
+import { currentUser, households, trades } from "@/lib/mock-data";
+import "@/types/index";
 
 export default function TradeConfirmationPage({
   params,
@@ -26,6 +31,18 @@ export default function TradeConfirmationPage({
   const [quantity, setQuantity] = useState(listing?.kwhAvailable ?? 0);
   const [confirmed, setConfirmed] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [solBalance, setSolBalance] = useState<number>(0);
+
+  // seller wallet for solana transaction 
+  const SELLER_WALLET = "9P643o3WMV5j1jJVa8bx9ypmJtA7B33Mj8g79iuW7HVa";
+
+  // Track dynamic quantity and listing availability
+  const [currentListing, setCurrentListing] = useState(listing);
+
+  // Mock trades state for demo purposes
+  const [mockTrades, setMockTrades] = useState<typeof trades>([]);
+
+  const [txHash, setTxHash] = useState<string | null>(null); // for storing transaction signature/ID after payment
 
   if (!listing) {
     return (
@@ -48,11 +65,82 @@ export default function TradeConfirmationPage({
   const savings = Math.round((gridCost - totalCost) * 100) / 100;
 
   const handleConfirm = async () => {
-    setProcessing(true);
-    // Simulate blockchain transaction
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setProcessing(false);
-    setConfirmed(true);
+    if (!currentListing) return;
+
+    try {
+      setProcessing(true);
+
+      // Step 1: Get provider
+      const walletAddress = await connectWallet();
+      if (!walletAddress) {
+        setProcessing(false);
+        return;
+      }
+
+      const provider = getProvider();
+      if (!provider) throw new Error("Phantom wallet not connected");
+
+      // Step 2: Send SOL to seller (Devnet)
+      const totalCost = Math.round(quantity * currentListing.pricePerKwh * 100) / 100;
+      const signature = await sendEnergyPayment(
+        provider,
+        "9P643o3WMV5j1jJVa8bx9ypmJtA7B33Mj8g79iuW7HVa", // seller wallet address
+        totalCost,
+        {
+          buyer: currentUser.name,
+          seller: currentListing.householdName,
+          energy: quantity,
+          pricePerKwh: currentListing.pricePerKwh,
+        }
+      );
+
+      console.log("Transaction Signature:", signature);
+      setTxHash(signature);
+
+      // Step 3: Update energy quantities
+      setCurrentListing((prev) =>
+        prev
+          ? { ...prev, kwhAvailable: prev.kwhAvailable - quantity }
+          : prev
+      );
+
+      // Optional: update buyer's total purchased energy in mock
+      currentUser.energyPurchased = (currentUser.energyPurchased || 0) + quantity;
+
+      // Step 4: Add trade record to mockTrades
+      /* 
+        const newTrade = {
+        id: `t${Date.now()}`,
+        buyerId: currentUser.id,
+        buyerName: currentUser.name,
+        sellerId: listing.householdId,
+        sellerName: listing.householdName,
+        listingId: listing.id,
+        kwhAmount: quantity,
+        pricePerKwh: listing.pricePerKwh,
+        totalCost,
+        status: "matched",
+        txHash: signature,
+        createdAt: new Date().toISOString(),
+      };
+      setMockTrades((prev) => [...prev, newTrade]);
+      console.log("New trade recorded:", newTrade);
+      */
+
+      // Step 5: refresh wallet balance & transaction history
+      const balance = await getWalletBalance(walletAddress);
+      setSolBalance(balance);
+      console.log("Updated wallet balance:", balance);
+      const txHistory = await getTransactionHistory(walletAddress);
+      console.log("Recent transactions:", txHistory);
+
+      setProcessing(false);
+      setConfirmed(true);
+    } catch (err) {
+      console.error("Transaction failed:", err);
+      alert("Transaction failed. Try again.");
+      setProcessing(false);
+    }
   };
 
   if (confirmed) {
@@ -106,10 +194,16 @@ export default function TradeConfirmationPage({
 
           <div className="flex items-center justify-center gap-2 mb-8">
             <Shield className="h-4 w-4 text-on-surface-variant" />
-            <button className="label-md text-primary flex items-center gap-1 cursor-pointer hover:underline">
-              View on Solana Explorer
-              <ExternalLink className="h-3 w-3" />
-            </button>
+            {txHash && (
+              <a
+                href={`https://explorer.solana.com/tx/${txHash}?cluster=devnet`}
+                target="_blank"
+                className="label-md text-primary flex items-center gap-1 cursor-pointer hover:underline"
+              >
+                View on Solana Explorer
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
           </div>
 
           <Link href="/marketplace">
@@ -166,7 +260,7 @@ export default function TradeConfirmationPage({
             <input
               type="range"
               min={0.5}
-              max={listing.kwhAvailable}
+              max={currentListing?.kwhAvailable ?? 0}
               step={0.1}
               value={quantity}
               onChange={(e) => setQuantity(parseFloat(e.target.value))}
@@ -180,7 +274,7 @@ export default function TradeConfirmationPage({
             </div>
           </div>
           <p className="body-md text-on-surface-variant mt-1">
-            Max available: {listing.kwhAvailable} kWh
+            Max available: {currentListing?.kwhAvailable ?? 0} kWh
           </p>
         </div>
 

@@ -1,12 +1,40 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { User, Wallet, Zap, Star, Clock } from "lucide-react";
 import { currentUser, userStats, trades } from "@/lib/mock-data";
+import { useEffect, useState } from "react";
+import { getProvider, connectWallet, getWalletBalance, getTransactionHistory } from "@/lib/wallet";
 
 export default function ProfilePage() {
   const userTrades = trades.filter(
     (t) => t.buyerId === currentUser.id || t.sellerId === currentUser.id
   );
+
+  // state for wallet info 
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [solBalance, setSolBalance] = useState<number>(0);
+  const [solTransactions, setSolTransactions] = useState<any[]>([]);
+
+  // load Phantom wallet
+  useEffect(() => {
+    const loadWallet = async () => {
+      const provider = getProvider();
+      if (!provider) return;
+
+      const address = await connectWallet();
+      setWalletAddress(address);
+
+      const balance = await getWalletBalance(address);
+      setSolBalance(balance);
+
+      const history = await getTransactionHistory(address);
+      setSolTransactions(history);
+    };
+
+    loadWallet();
+  }, []);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
@@ -47,12 +75,21 @@ export default function ProfilePage() {
           <h3 className="headline-sm text-on-surface">My Wallet</h3>
         </div>
 
+        <Button
+          onClick={async () => {
+            const address = await connectWallet();
+            console.log("Connected wallet:", address);
+          }}
+        >
+          Connect Phantom Wallet
+        </Button>
+
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-surface-low rounded-lg p-4 text-center">
             <p className="font-display text-3xl font-bold text-primary">
-              {userStats.creditBalance}
+              {solBalance.toFixed(4)}
             </p>
-            <p className="label-md text-on-surface-variant">Credits</p>
+            <p className="label-md text-on-surface-variant">SOL</p>
           </div>
           <div className="bg-surface-low rounded-lg p-4 text-center">
             <p className="font-display text-3xl font-bold text-on-surface">
@@ -70,53 +107,29 @@ export default function ProfilePage() {
           <h3 className="headline-sm text-on-surface">Trade History</h3>
         </div>
 
-        {userTrades.length > 0 ? (
+        {solTransactions.length > 0 ? (
           <div className="space-y-3">
-            {userTrades.map((trade) => {
-              const isSeller = trade.sellerId === currentUser.id;
-              return (
-                <div
-                  key={trade.id}
-                  className="flex items-center justify-between bg-surface-low rounded-lg p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                        isSeller ? "bg-primary/10" : "bg-secondary/10"
-                      }`}
-                    >
-                      <Zap
-                        className={`h-4 w-4 ${
-                          isSeller ? "text-primary" : "text-secondary"
-                        }`}
-                      />
-                    </div>
-                    <div>
-                      <p className="body-md text-on-surface font-medium">
-                        {isSeller ? "Sold" : "Bought"} {trade.kwhAmount} kWh
-                      </p>
-                      <p className="label-md text-on-surface-variant">
-                        {isSeller
-                          ? `to ${trade.buyerName}`
-                          : `from ${trade.sellerName}`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p
-                      className={`body-md font-medium ${
-                        isSeller ? "text-primary" : "text-secondary"
-                      }`}
-                    >
-                      {isSeller ? "+" : "-"}${trade.totalCost.toFixed(2)}
+            {solTransactions.map((tx, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between bg-surface-low rounded-lg p-3"
+              >
+                <div>
+                  <p className="body-md text-on-surface font-medium">
+                    Tx Signature: {tx?.transaction.signatures[0].slice(0, 8)}...
+                  </p>
+                  <p className="label-md text-on-surface-variant">
+                    Slot: {tx?.slot}
+                    <p className="label-md text-on-surface-variant">
+                      To: {tx?.transaction.message.accountKeys[1].toString().slice(0, 8)}...
                     </p>
-                    <Chip variant={trade.status as "settled" | "matched" | "delivered" | "failed"}>
-                      {trade.status}
-                    </Chip>
-                  </div>
+                    <p className="label-md text-on-surface-variant">
+                      Amount: {(tx?.meta?.preBalances[0] - tx?.meta?.postBalances[0]) / 1e9} SOL
+                    </p>
+                  </p>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         ) : (
           <p className="body-md text-on-surface-variant text-center py-4">

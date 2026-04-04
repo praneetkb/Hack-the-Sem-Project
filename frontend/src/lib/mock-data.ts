@@ -6,7 +6,7 @@ import type {
   ForecastPoint,
 } from "@/types";
 
-// ── Households ──────────────────────────────────────────────
+// ------------------------------- HOUSEHOLDS ------------------------------------------
 
 export const households: Household[] = [
   {
@@ -19,13 +19,16 @@ export const households: Household[] = [
     reliabilityScore: 0.97,
   },
   {
+    // using this household as the buyer for the demo
     id: "h2",
     name: "Smith Residence",
     email: "smith@example.com",
     role: "consumer",
     creditBalance: 15.0,
+    walletAddress: "7sp7yC4W2xwz2hzJF6YtGaHpizwejbRby7q79hJCqpST", 
     location: { lat: -33.8712, lng: 151.2127, suburb: "Darlinghurst" },
-    reliabilityScore: 1.0,
+    reliabilityScore: 0.97,
+    energyPurchased: 0, 
   },
   {
     id: "h3",
@@ -37,11 +40,13 @@ export const households: Household[] = [
     reliabilityScore: 0.94,
   },
   {
+    // using this household as the seller for the demo
     id: "h4",
     name: "Patel Family",
     email: "patel@example.com",
-    role: "both",
+    role: "prosumer",
     creditBalance: 31.2,
+    walletAddress: "9P643o3WMV5j1jJVa8bx9ypmJtA7B33Mj8g79iuW7HVa", 
     location: { lat: -33.8775, lng: 151.2157, suburb: "Paddington" },
     reliabilityScore: 0.91,
   },
@@ -76,7 +81,7 @@ export const households: Household[] = [
     id: "h8",
     name: "Garcia Family",
     email: "garcia@example.com",
-    role: "both",
+    role: "prosumer",
     creditBalance: 22.7,
     location: { lat: -33.8745, lng: 151.2052, suburb: "Newtown" },
     reliabilityScore: 0.89,
@@ -102,9 +107,9 @@ export const households: Household[] = [
 ];
 
 // The "current user" for the dashboard
-export const currentUser = households[0];
+export const currentUser = households[1];
 
-// ── Meter Readings (24hrs for current user, bell curve generation) ───
+// ------------------------- METER READINGS (24hrs for current user, bell curve generation) --------------------
 
 function generateMeterReadings(householdId: string): MeterReading[] {
   const readings: MeterReading[] = [];
@@ -182,7 +187,7 @@ export function getHourlyData() {
   return hourly;
 }
 
-// ── Listings ────────────────────────────────────────────────
+// ----------------------------- LISTINGS ----------------------------------------
 
 export const listings: Listing[] = [
   {
@@ -345,7 +350,7 @@ export const listings: Listing[] = [
 
 export const activeListings = listings.filter((l) => l.status === "active");
 
-// ── Trades ──────────────────────────────────────────────────
+// --------------------------- TRADES ------------------------------------------
 
 export const trades: Trade[] = [
   {
@@ -460,7 +465,7 @@ export const trades: Trade[] = [
   },
 ];
 
-// ── Forecast ────────────────────────────────────────────────
+// -------------------------------- FORECAST -------------------------------------------
 
 export const forecast: ForecastPoint[] = Array.from({ length: 24 }, (_, h) => {
   const peakSurplus = 3.8;
@@ -477,7 +482,7 @@ export const forecast: ForecastPoint[] = Array.from({ length: 24 }, (_, h) => {
   };
 });
 
-// ── Aggregate Stats ─────────────────────────────────────────
+// -------------------------- AGGREGATE STATS ----------------------------------
 
 export const platformStats = {
   totalKwhTraded: 1247.6,
