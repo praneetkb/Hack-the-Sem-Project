@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Inter } from "next/font/google";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
-import { LocationProvider } from "@/context/LocationContext";
+import { Providers } from "./providers";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -18,9 +18,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "P2P Energy Trading | Sustainable Solar Marketplace",
+  title: "WattExchange | Peer-to-Peer Solar Energy Trading",
   description:
-    "Trade surplus solar energy peer-to-peer with your neighbors. Powered by Solana blockchain for transparent, affordable, and clean energy transactions.",
+    "WattExchange — trade surplus solar energy peer-to-peer with your neighbors. Powered by Solana blockchain for transparent, affordable, and clean energy transactions.",
 };
 
 export default function RootLayout({
@@ -34,11 +34,11 @@ export default function RootLayout({
       className={`${manrope.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-surface text-on-surface">
-        <LocationProvider>
+        <Providers>
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />
-        </LocationProvider>
+        </Providers>
       </body>
     </html>
   );

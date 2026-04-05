@@ -45,7 +45,7 @@ export function Navbar() {
               <Zap className="h-5 w-5 text-on-primary" />
             </div>
             <span className="font-display text-lg font-bold text-on-surface hidden sm:block">
-              EnergyTrade
+              WattExchange
             </span>
           </Link>
 

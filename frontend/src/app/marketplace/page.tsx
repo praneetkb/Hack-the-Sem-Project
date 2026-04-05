@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { EnergyCard } from "@/components/ui/energy-card";
 import { Chip } from "@/components/ui/chip";
-import { useLocation } from "@/context/LocationContext";
+import { useLocation } from "@/lib/location-context";
 import { getMatchedListings, getPlatformStats } from "@/lib/api";
 import type { Listing } from "@/types";
 
@@ -31,7 +31,7 @@ export default function MarketplacePage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
   const [stats, setStats] = useState<PlatformStats | null>(null);
-  const { lat, lng, isDefault, loading: locationLoading } = useLocation();
+  const { lat, lng, isDenied, isLoading: locationLoading } = useLocation();
 
   // Fetch matched listings whenever location resolves
   useEffect(() => {
@@ -89,7 +89,7 @@ export default function MarketplacePage() {
         {!locationLoading && (
           <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-surface-lowest px-3 py-1.5 shadow-soft">
             <MapPin className="h-3.5 w-3.5" />
-            {isDefault ? (
+            {isDenied ? (
               <span className="label-md text-secondary">
                 Using approximate location (Sydney CBD)
               </span>

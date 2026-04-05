@@ -13,6 +13,10 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Column: Text */}
             <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1">
+                <Zap className="h-4 w-4 text-primary" />
+                <span className="label-md text-primary font-semibold">WattExchange</span>
+              </div>
               <h1 className="display-lg text-on-surface mb-6">
                 Stop Selling to the Grid for 3 Cents. <br />
                 <span className="text-primary">Sell to Your Neighbor for 15!</span>
@@ -340,6 +344,10 @@ export default function LandingPage() {
       {/* ── CTA Section ──────────────────────────────────── */}
       <section className="energy-gradient py-24 text-center">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1">
+            <Zap className="h-4 w-4 text-white" />
+            <span className="label-md text-white font-semibold">WattExchange</span>
+          </div>
           <h2 className="font-display text-4xl sm:text-5xl font-bold text-white mb-6">
             The Future is<br />
             <span className="text-white">

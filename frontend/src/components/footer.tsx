@@ -11,7 +11,7 @@ export function Footer() {
               <Zap className="h-4 w-4 text-on-primary" />
             </div>
             <span className="font-display text-sm font-semibold text-on-surface">
-              EnergyTrade
+              WattExchange
             </span>
           </div>
 

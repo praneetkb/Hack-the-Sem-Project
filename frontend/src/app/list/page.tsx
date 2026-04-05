@@ -27,7 +27,7 @@ export default function ListSurplusPage() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const [kwhToList, setKwhToList] = useState(0);
+  const [kwhToList, setKwhToList] = useState(0.1);
   const [pricePerKwh, setPricePerKwh] = useState(0.17);
   const [submitted, setSubmitted] = useState(false);
 
@@ -54,7 +54,7 @@ export default function ListSurplusPage() {
       // Calculate surplus and set initial kwhToList
       const recentReadings = r.slice(-4);
       const surplus = recentReadings.reduce((sum: number, r: any) => sum + Math.max(0, r.surplus), 0);
-      setKwhToList(Math.round(surplus * 10) / 10);
+      setKwhToList(Math.max(0.1, Math.round(surplus * 10) / 10));
 
       setLoading(false);
     } catch (err) {

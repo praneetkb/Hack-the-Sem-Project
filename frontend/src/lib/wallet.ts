@@ -1,12 +1,8 @@
-// Phantom Wallet for frontend 
+// Phantom Wallet for frontend
+// @solana/web3.js is dynamically imported to avoid Node.js built-in conflicts at build time
 
-import { Connection, PublicKey } from "@solana/web3.js";
-
-const connection = new Connection("https://api.devnet.solana.com");
-
-// Get provider (Phantom Wallet)
-export const getProvider = () => { 
-  if ("solana" in window) {
+export const getProvider = () => {
+  if (typeof window !== "undefined" && "solana" in window) {
     const provider = (window as any).solana;
     if (provider.isPhantom) {
       return provider;
@@ -15,42 +11,38 @@ export const getProvider = () => {
   return null;
 };
 
-// Connect wallet and return publicKey
-export const connectWallet = async () => {
-    const provider = getProvider();
-  
-    if (!provider) {
-      alert("Please install Phantom Wallet");
-      return null;
-    }
-  
-    try {
-      const response = await provider.connect({
-        onlyIfTrusted: false, // IMPORTANT - forces popup
-      });
-  
-      return response.publicKey.toString();
-    } catch (err) {
-      console.error("Wallet connection failed", err);
-      return null;
-    }
-  };
+export const connectWallet = async (): Promise<string | null> => {
+  const provider = getProvider();
 
-// Get SOL balance
-export const getWalletBalance = async (wallet: string) => {
-  const pubKey = new PublicKey(wallet);
-  const balance = await connection.getBalance(pubKey);
-  return balance / 1e9; // convert lamports to SOL
+  if (!provider) {
+    alert("Please install Phantom Wallet");
+    return null;
+  }
+
+  try {
+    const response = await provider.connect({ onlyIfTrusted: false });
+    return response.publicKey.toString();
+  } catch (err) {
+    console.error("Wallet connection failed", err);
+    return null;
+  }
 };
 
-// Get last 10 transactions
-export const getTransactionHistory = async (wallet: string) => {
+export const getWalletBalance = async (wallet: string): Promise<number> => {
+  const { Connection, PublicKey } = await import("@solana/web3.js");
+  const connection = new Connection("https://api.devnet.solana.com");
+  const pubKey = new PublicKey(wallet);
+  const balance = await connection.getBalance(pubKey);
+  return balance / 1e9;
+};
+
+export const getTransactionHistory = async (wallet: string): Promise<any[]> => {
+  const { Connection, PublicKey } = await import("@solana/web3.js");
+  const connection = new Connection("https://api.devnet.solana.com");
   const pubKey = new PublicKey(wallet);
   const signatures = await connection.getSignaturesForAddress(pubKey, { limit: 10 });
-
   const txs = await Promise.all(
     signatures.map((sig) => connection.getTransaction(sig.signature))
   );
-
   return txs;
 };

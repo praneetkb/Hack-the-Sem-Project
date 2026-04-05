@@ -1,69 +1,112 @@
 import type { Listing, Trade } from "@/types";
+import {
+  households,
+  currentUser,
+  listings,
+  activeListings,
+  trades,
+  forecast,
+  userStats,
+  platformStats,
+  meterReadings,
+  getHourlyData,
+} from "@/lib/mock-data";
+import { getDistance } from "@/lib/distance";
 
-const API_BASE = "http://localhost:3001";
+const delay = (ms = 200) => new Promise((res) => setTimeout(res, ms));
 
-export async function getActiveListings() {
-  const res = await fetch(`${API_BASE}/listings/active`, { cache: 'no-store' });
-  return res.json();
+export async function getActiveListings(): Promise<Listing[]> {
+  await delay();
+  return activeListings;
 }
 
-export async function getAllListings() {
-  const res = await fetch(`${API_BASE}/listings`, { cache: 'no-store' });
-  return res.json();
+export async function getAllListings(): Promise<Listing[]> {
+  await delay();
+  return listings;
 }
 
 export async function getMatchedListings(
   userLat: number,
   userLng: number
 ): Promise<Listing[]> {
-  const res = await fetch(`${API_BASE}/listings/match?lat=${userLat}&lng=${userLng}`, { cache: 'no-store' });
-  return res.json();
+  await delay();
+
+  const distances = activeListings.map((l) => {
+    const h = households.find((h) => h.id === l.householdId);
+    const dist = h ? getDistance(userLat, userLng, h.location.lat, h.location.lng) : Infinity;
+    return { listing: l, dist };
+  });
+
+  const maxDist = Math.max(...distances.map((d) => d.dist), 1);
+  const maxPrice = Math.max(...activeListings.map((l) => l.pricePerKwh), 1);
+
+  return distances
+    .map(({ listing, dist }) => ({
+      listing,
+      score:
+        (1 - dist / maxDist) * 0.7 +
+        (1 - listing.pricePerKwh / maxPrice) * 0.3,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .map(({ listing }) => listing);
 }
 
-export async function getListing(id: string) {
-  // Use GET /listings and find it since there is no /listings/:id requested
-  const res = await fetch(`${API_BASE}/listings`, { cache: 'no-store' });
-  const listings = await res.json();
-  return listings.find((l: any) => l.id === id) ?? null;
+export async function getListing(id: string): Promise<Listing | null> {
+  await delay();
+  return listings.find((l) => l.id === id) ?? null;
 }
 
 export async function createListing(data: {
   kwhAvailable: number;
   pricePerKwh: number;
 }): Promise<Listing> {
-  const res = await fetch(`${API_BASE}/listings`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-    cache: 'no-store'
-  });
-  return res.json();
+  await delay();
+  const newListing: Listing = {
+    id: `listing-${Date.now()}`,
+    householdId: currentUser.id,
+    householdName: currentUser.name,
+    suburb: currentUser.location.suburb,
+    kwhAvailable: data.kwhAvailable,
+    pricePerKwh: data.pricePerKwh,
+    reliabilityScore: currentUser.reliabilityScore,
+    distanceKm: 0,
+    status: "active",
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+  activeListings.push(newListing);
+  listings.push(newListing);
+  return newListing;
 }
 
 export async function getHousehold(id: string) {
-  const res = await fetch(`${API_BASE}/households/me`, { cache: 'no-store' });
-  return res.json();
+  await delay();
+  return households.find((h) => h.id === id) ?? null;
 }
 
 export async function getCurrentUser() {
-  const res = await fetch(`${API_BASE}/households/me`, { cache: 'no-store' });
-  return res.json();
+  await delay();
+  return currentUser;
 }
 
 export async function getMeterReadings(householdId: string) {
-  const res = await fetch(`${API_BASE}/households/${householdId}/readings`, { cache: 'no-store' });
-  return res.json();
+  await delay();
+  return meterReadings.filter((r) => r.householdId === householdId);
 }
 
 export async function getHourlyChartData() {
-  const res = await fetch(`${API_BASE}/households/h1/chart`, { cache: 'no-store' });
-  return res.json();
+  await delay();
+  return getHourlyData();
 }
 
-export async function getTrades(householdId?: string) {
-  const url = householdId ? `${API_BASE}/trades?householdId=${householdId}` : `${API_BASE}/trades`;
-  const res = await fetch(url, { cache: 'no-store' });
-  return res.json();
+export async function getTrades(householdId?: string): Promise<Trade[]> {
+  await delay();
+  if (householdId) {
+    return trades.filter(
+      (t) => t.buyerId === householdId || t.sellerId === householdId
+    );
+  }
+  return trades;
 }
 
 export async function createTrade(data: {
@@ -71,26 +114,38 @@ export async function createTrade(data: {
   kwhAmount: number;
   solanaSignature?: string;
 }): Promise<Trade> {
-  const res = await fetch(`${API_BASE}/trades`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-    cache: 'no-store'
-  });
-  return res.json();
+  await delay();
+  const listing = listings.find((l) => l.id === data.listingId);
+  const seller = households.find((h) => h.id === listing?.householdId);
+  const newTrade: Trade = {
+    id: `trade-${Date.now()}`,
+    listingId: data.listingId,
+    buyerId: currentUser.id,
+    buyerName: currentUser.name,
+    sellerId: listing?.householdId ?? "unknown",
+    sellerName: seller?.name ?? "Unknown",
+    kwhAmount: data.kwhAmount,
+    pricePerKwh: listing?.pricePerKwh ?? 0,
+    totalCost: data.kwhAmount * (listing?.pricePerKwh ?? 0),
+    status: "settled",
+    txHash: data.solanaSignature,
+    createdAt: new Date().toISOString(),
+  };
+  trades.push(newTrade);
+  return newTrade;
 }
 
 export async function getForecast(householdId: string) {
-  const res = await fetch(`${API_BASE}/forecast/${householdId}`, { cache: 'no-store' });
-  return res.json();
+  await delay();
+  return forecast;
 }
 
 export async function getUserStats() {
-  const res = await fetch(`${API_BASE}/report/h1`, { cache: 'no-store' });
-  return res.json();
+  await delay();
+  return userStats;
 }
 
 export async function getPlatformStats() {
-  const res = await fetch(`${API_BASE}/platform/stats`, { cache: 'no-store' });
-  return res.json();
+  await delay();
+  return platformStats;
 }
