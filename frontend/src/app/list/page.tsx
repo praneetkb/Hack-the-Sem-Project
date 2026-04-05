@@ -19,8 +19,10 @@ import {
   createListing
 } from "@/lib/api";
 import type { Listing } from "@/types";
+import { getEnergyTotals } from "@/lib/mock-data";
 
 export default function ListSurplusPage() {
+  const energy = getEnergyTotals();
   const [user, setUser] = useState<any>(null);
   const [readings, setReadings] = useState<any[]>([]);
   const [activeListings, setActiveListings] = useState<Listing[]>([]);
@@ -67,12 +69,23 @@ export default function ListSurplusPage() {
     fetchData();
   }, []);
 
-  const latestReading = readings.length > 0 ? readings[readings.length - 1] : { generation: 0, consumption: 0, surplus: 0 };
+  // get latest meter reading 
+  const latestReading = useMemo(() => {
+    if (!readings || readings.length === 0) return null;
+    return readings[readings.length - 1];
+  }, []);
 
+  // calculate surplus based on generation - consumption
   const currentSurplus = useMemo(() => {
-    const recentReadings = readings.slice(-4);
-    return recentReadings.reduce((sum, r) => sum + Math.max(0, r.surplus), 0);
-  }, [readings]);
+    if (!readings || readings.length === 0) return 0;
+
+    const recentReadings = readings.slice(-4); // last hour
+
+    return recentReadings.reduce((sum, r) => {
+      const surplus = r.generation - r.consumption;
+      return sum + Math.max(0, surplus);
+    }, 0);
+  }, []);
 
   const handleSubmit = async () => {
     try {
@@ -119,7 +132,7 @@ export default function ListSurplusPage() {
                   </span>
                 </div>
                 <p className="font-display text-2xl font-bold text-on-surface">
-                  {latestReading.generation.toFixed(2)}
+                {energy.generation.toFixed(2)}
                 </p>
                 <p className="label-md text-on-surface-variant">kWh</p>
               </div>
@@ -132,7 +145,7 @@ export default function ListSurplusPage() {
                   </span>
                 </div>
                 <p className="font-display text-2xl font-bold text-on-surface">
-                  {latestReading.consumption.toFixed(2)}
+                {energy.consumption.toFixed(2)}
                 </p>
                 <p className="label-md text-on-surface-variant">kWh</p>
               </div>
@@ -145,7 +158,7 @@ export default function ListSurplusPage() {
                   </span>
                 </div>
                 <p className="font-display text-2xl font-bold text-primary">
-                  {currentSurplus.toFixed(2)}
+                {energy.surplus.toFixed(2)}
                 </p>
                 <p className="label-md text-on-surface-variant">kWh</p>
               </div>

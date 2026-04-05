@@ -23,7 +23,7 @@ export const households: Household[] = [
     id: "h2",
     name: "Smith Residence",
     email: "smith@example.com",
-    role: "consumer",
+    role: "prosumer",
     creditBalance: 15.0,
     walletAddress: "7sp7yC4W2xwz2hzJF6YtGaHpizwejbRby7q79hJCqpST", 
     location: { lat: -33.8712, lng: 151.2127, suburb: "Darlinghurst" },
@@ -160,7 +160,20 @@ function generateMeterReadings(householdId: string): MeterReading[] {
   return readings;
 }
 
-export const meterReadings = generateMeterReadings("h1");
+export const meterReadings = generateMeterReadings("h2"); // 24 hours of data for the current user (Smith Residence)
+
+// calculate totals for the dashboard stats (helper function)
+export function getEnergyTotals() {
+  const totalGen = meterReadings.reduce((sum, r) => sum + r.generation, 0);
+  const totalCon = meterReadings.reduce((sum, r) => sum + r.consumption, 0);
+  const totalSur = meterReadings.reduce((sum, r) => sum + r.surplus, 0);
+
+  return {
+    generation: Math.round(totalGen * 100) / 100,
+    consumption: Math.round(totalCon * 100) / 100,
+    surplus: Math.round(totalSur * 100) / 100,
+  };
+}
 
 // Hourly aggregated data for charts
 export function getHourlyData() {

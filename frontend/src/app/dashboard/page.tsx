@@ -62,7 +62,7 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="headline-lg text-on-surface">
-            Welcome back, {user?.name ? user.name.split(" ")[1] : "..."}
+            Welcome back, {user?.name ? user.name.split(" ")[0] : "..."} 
           </h1>
           <p className="body-lg text-on-surface-variant mt-1">
             Your energy dashboard at a glance.
