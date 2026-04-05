@@ -46,9 +46,16 @@ export async function getMatchedListings(
   userLng: number
 ): Promise<Listing[]> {
   try {
-    return await fetchJSON<Listing[]>(
+    const data = await fetchJSON<any[]>(
       `${API_BASE}/listings/match?lat=${userLat}&lng=${userLng}`
     );
+
+    return data.map((l) => ({
+      ...l,
+      pricePerKwh: l.price ?? l.pricePerKwh,
+      distanceKm: l.distance ?? l.distanceKm,
+      matchScore: l.score,
+    }));
   } catch {
     const distances = activeListings.map((l) => {
       const h = households.find((h) => h.id === l.householdId);
@@ -61,13 +68,12 @@ export async function getMatchedListings(
     const maxPrice = Math.max(...activeListings.map((l) => l.pricePerKwh), 1);
     return distances
       .map(({ listing, dist }) => ({
-        listing,
-        score:
+        ...listing, 
+        matchScore:
           (1 - dist / maxDist) * 0.7 +
           (1 - listing.pricePerKwh / maxPrice) * 0.3,
       }))
-      .sort((a, b) => b.score - a.score)
-      .map(({ listing }) => listing);
+      .sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
   }
 }
 

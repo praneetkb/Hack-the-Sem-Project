@@ -36,6 +36,7 @@ export interface Listing {
   distanceKm: number;
   createdAt: string;
   expiresAt: string;
+  matchScore?: number; 
 }
 
 export type TradeStatus = "matched" | "delivered" | "settled" | "failed";
