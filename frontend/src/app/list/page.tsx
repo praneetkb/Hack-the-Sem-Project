@@ -21,6 +21,25 @@ import {
 import type { Listing } from "@/types";
 import { getEnergyTotals } from "@/lib/mock-data";
 
+// helper to calculate expiry of listings in PST (will expire at the end of the day)
+const getHoursUntilEndOfDayPST = () => {
+  const now = new Date();
+
+  // Current time in PST
+  const pstTime = new Date(
+    now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" })
+  );
+
+  // End of the day PST
+  const endOfDay = new Date(pstTime);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  // Difference in hours
+  const diffMs = endOfDay.getTime() - pstTime.getTime();
+  const diffHours = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60)));
+  return diffHours;
+};
+
 export default function ListSurplusPage() {
   const energy = getEnergyTotals();
   const [user, setUser] = useState<any>(null);
@@ -28,6 +47,14 @@ export default function ListSurplusPage() {
   const [activeListings, setActiveListings] = useState<Listing[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [hoursLeft, setHoursLeft] = useState(getHoursUntilEndOfDayPST());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHoursLeft(getHoursUntilEndOfDayPST());
+    }, 60 * 1000); // every minute
+    return () => clearInterval(timer);
+  }, []);
 
   const [kwhToList, setKwhToList] = useState(0.1);
   const [pricePerKwh, setPricePerKwh] = useState(0.17);
@@ -132,7 +159,7 @@ export default function ListSurplusPage() {
                   </span>
                 </div>
                 <p className="font-display text-2xl font-bold text-on-surface">
-                {energy.generation.toFixed(2)}
+                  {energy.generation.toFixed(2)}
                 </p>
                 <p className="label-md text-on-surface-variant">kWh</p>
               </div>
@@ -145,7 +172,7 @@ export default function ListSurplusPage() {
                   </span>
                 </div>
                 <p className="font-display text-2xl font-bold text-on-surface">
-                {energy.consumption.toFixed(2)}
+                  {energy.consumption.toFixed(2)}
                 </p>
                 <p className="label-md text-on-surface-variant">kWh</p>
               </div>
@@ -158,7 +185,7 @@ export default function ListSurplusPage() {
                   </span>
                 </div>
                 <p className="font-display text-2xl font-bold text-primary">
-                {energy.surplus.toFixed(2)}
+                  {energy.surplus.toFixed(2)}
                 </p>
                 <p className="label-md text-on-surface-variant">kWh</p>
               </div>
@@ -180,7 +207,7 @@ export default function ListSurplusPage() {
                 <input
                   type="range"
                   min={0.1}
-                  max={50} // Allow listing up to 50kWh for demo flexibility
+                  max={10}
                   step={0.1}
                   value={kwhToList}
                   onChange={(e) => setKwhToList(parseFloat(e.target.value))}
@@ -311,6 +338,9 @@ export default function ListSurplusPage() {
                       </p>
                       <p className="label-md text-on-surface-variant">
                         ${listing.pricePerKwh.toFixed(2)}/kWh
+                      </p>
+                      <p className="label-sm text-on-surface-variant mt-1">
+                        Expires in {hoursLeft} {hoursLeft === 1 ? "hour" : "hours"}
                       </p>
                     </div>
                     <Chip variant="active">Active</Chip>

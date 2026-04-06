@@ -175,7 +175,9 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="body-md text-on-surface font-medium">
-                      {isSell ? "Sold" : "Bought"} {trade.kwhAmount} kWh
+                      {isSell
+                        ? `Sold ${trade.kwhAmount} kWh to ${trade.buyerName}`
+                        : `Bought ${trade.kwhAmount} kWh from ${trade.sellerName}`}
                     </p>
                     <p className="label-md text-on-surface-variant">
                       ${trade.totalCost.toFixed(2)} · ${trade.pricePerKwh.toFixed(2)}/kWh
