@@ -96,42 +96,41 @@ export default function TradeConfirmationPage({
     try {
       setProcessing(true);
 
-      // Step 1: Get provider
-      const walletAddress = await connectWallet();
-      if (!walletAddress) {
-        setProcessing(false);
-        return;
+      let signature: string | null = null;
+      const provider = getProvider();
+
+      if (provider) {
+        // Phantom is available — do a real Solana payment
+        const walletAddress = await connectWallet();
+        if (!walletAddress) {
+          setProcessing(false);
+          return;
+        }
+
+        const totalCostSol = Math.round(quantity * currentListing.pricePerKwh * 100) / 100;
+        signature = await sendEnergyPayment(
+          provider,
+          SELLER_WALLET,
+          totalCostSol,
+          {
+            buyer: currentUser.name,
+            seller: currentListing.householdName,
+            energy: quantity,
+            pricePerKwh: currentListing.pricePerKwh,
+          }
+        );
+        console.log("Transaction Signature:", signature);
+        setTxHash(signature);
       }
 
-      const provider = getProvider();
-      if (!provider) throw new Error("Phantom wallet not connected");
-
-      // Step 2: Send SOL to seller (Devnet)
-      const totalCost = Math.round(quantity * currentListing.pricePerKwh * 100) / 100;
-      const signature = await sendEnergyPayment(
-        provider,
-        "9P643o3WMV5j1jJVa8bx9ypmJtA7B33Mj8g79iuW7HVa", // seller wallet address
-        totalCost,
-        {
-          buyer: currentUser.name,
-          seller: currentListing.householdName,
-          energy: quantity,
-          pricePerKwh: currentListing.pricePerKwh,
-        }
-      );
-
-      console.log("Transaction Signature:", signature);
-      setTxHash(signature);
-
-      // Step 3: Record trade in Backend (Sync inventory/credits)
+      // Record trade in backend (works with or without Phantom)
       const trade = await createTrade({
         listingId: currentListing.id,
         kwhAmount: quantity,
-        solanaSignature: signature
+        solanaSignature: signature ?? undefined,
       });
 
       console.log("Backend trade confirmed:", trade);
-      setTxHash(signature);
 
       setProcessing(false);
       setConfirmed(true);
