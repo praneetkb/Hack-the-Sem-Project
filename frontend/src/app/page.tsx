@@ -7,8 +7,82 @@ import { NeighborhoodMap } from "@/components/visualizations/neighborhood-map";
 export default function LandingPage() {
   return (
     <div className="flex flex-col">
+
       {/* ── Hero Section (Two-Column) ─────────────────────────── */}
-      <section className="bg-surface py-20 sm:py-28">
+      <section
+        className="py-20 sm:py-28 relative overflow-hidden"
+        style={{
+          background: `
+      radial-gradient(ellipse 80% 60% at 15% 20%, rgba(0,184,148,0.13) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 85% 75%, rgba(9,132,227,0.11) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 40% at 55% 50%, rgba(255,177,66,0.08) 0%, transparent 50%),
+      linear-gradient(160deg, #edf4f0 0%, #ffffff 45%, #eef3f9 100%)
+    `,
+        }}
+      >
+        {/* ── Background Shapes ── */}
+        <div className="absolute inset-0 pointer-events-none">
+
+          {/* ── Green circles ── */}
+          <svg className="absolute top-[8%] left-[12%] w-16 h-16 opacity-[0.18] animate-float-slow" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="50" fill="#00B894" />
+          </svg>
+          <svg className="absolute top-[68%] left-[28%] w-14 h-14 opacity-[0.14] animate-float-slow" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="50" fill="#00B894" />
+          </svg>
+          <svg className="absolute top-[18%] left-[52%] w-11 h-11 opacity-[0.15] animate-float-slow" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="50" fill="#55efc4" />
+          </svg>
+          <svg className="absolute top-[80%] left-[82%] w-9 h-9 opacity-[0.13] animate-float-reverse" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="50" fill="#00b894" />
+          </svg>
+          {/* rings */}
+          <svg className="absolute top-[55%] left-[5%] w-16 h-16 opacity-[0.16] animate-float-slow" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#00B894" strokeWidth="10" />
+          </svg>
+          <svg className="absolute top-[10%] left-[88%] w-12 h-12 opacity-[0.14] animate-float-reverse" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#55efc4" strokeWidth="10" />
+          </svg>
+
+          {/* ── Blue rectangles ── */}
+          <svg className="absolute top-[58%] left-[78%] w-14 h-14 opacity-[0.13] animate-float-slow" viewBox="0 0 100 100">
+            <rect width="100" height="100" rx="12" fill="#0984E3" />
+          </svg>
+          <svg className="absolute top-[85%] left-[45%] w-10 h-10 opacity-[0.12] animate-float-slow" viewBox="0 0 100 100">
+            <rect width="100" height="100" rx="16" fill="#74b9ff" />
+          </svg>
+          {/* hollow squares */}
+          <svg className="absolute top-[5%] left-[38%] w-10 h-10 opacity-[0.14] animate-float-reverse" viewBox="0 0 100 100">
+            <rect x="8" y="8" width="84" height="84" rx="14" fill="none" stroke="#0984E3" strokeWidth="10" />
+          </svg>
+          <svg className="absolute top-[72%] left-[14%] w-11 h-11 opacity-[0.12] animate-float-slow" viewBox="0 0 100 100">
+            <rect x="8" y="8" width="84" height="84" rx="10" fill="none" stroke="#74b9ff" strokeWidth="9" />
+          </svg>
+
+          {/* ── Triangles ── */}
+          <svg className="absolute top-[32%] left-[18%] w-10 h-10 opacity-[0.14] animate-float-slow" viewBox="0 0 100 100">
+            <polygon points="50,0 100,100 0,100" fill="#FFB142" />
+          </svg>
+          <svg className="absolute top-[15%] left-[78%] w-9 h-9 opacity-[0.13] animate-float-slow" viewBox="0 0 100 100">
+            <polygon points="50,0 100,100 0,100" fill="#FFB142" />
+          </svg>
+          <svg className="absolute top-[88%] left-[66%] w-10 h-10 opacity-[0.12] animate-float-reverse" viewBox="0 0 100 100">
+            <polygon points="50,0 100,100 0,100" fill="#fd79a8" />
+          </svg>
+
+          {/* ── Diamonds ── */}
+          <svg className="absolute top-[48%] left-[35%] w-9 h-9 opacity-[0.14] animate-float-slow" viewBox="0 0 100 100">
+            <rect x="25" y="25" width="50" height="50" rx="6" fill="#a29bfe" transform="rotate(45 50 50)" />
+          </svg>
+          <svg className="absolute top-[28%] left-[92%] w-11 h-11 opacity-[0.13] animate-float-reverse" viewBox="0 0 100 100">
+            <rect x="22" y="22" width="56" height="56" rx="8" fill="#00B894" transform="rotate(45 50 50)" />
+          </svg>
+          <svg className="absolute top-[78%] left-[53%] w-8 h-8 opacity-[0.13] animate-float-slow" viewBox="0 0 100 100">
+            <rect x="25" y="25" width="50" height="50" rx="6" fill="#0984E3" transform="rotate(45 50 50)" />
+          </svg>
+
+        </div>
+
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Column: Text */}
@@ -18,14 +92,12 @@ export default function LandingPage() {
                 <span className="label-md text-primary font-semibold">WattExchange</span>
               </div>
               <h1 className="display-lg text-on-surface mb-6">
-                Stop Selling to the Grid for 3 Cents. <br />
-                <span className="text-primary">Sell to Your Neighbor for 15!</span>
+                Trade Solar Locally. Power a Sustainable Future. <br />
               </h1>
 
               <p className="body-lg text-on-surface-variant max-w-xl mb-10">
-                You generate the energy, you should set the price.
-                Sell your surplus solar directly to nearby households
-                secured on the Solana blockchain — transparent, instant, and decentralized.
+                Connect with nearby households to sell your surplus solar energy directly
+                Transparent, secure, and sustainable — every kilowatt counts towards a greener future!
               </p>
 
               <div className="flex flex-col gap-4 sm:flex-row">
