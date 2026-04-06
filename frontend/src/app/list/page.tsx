@@ -80,10 +80,9 @@ export default function ListSurplusPage() {
       const r = await getMeterReadings(u.id);
       setReadings(r);
 
-      // Calculate surplus and set initial kwhToList
-      const recentReadings = r.slice(-4);
-      const surplus = recentReadings.reduce((sum: number, r: any) => sum + Math.max(0, r.surplus), 0);
-      setKwhToList(Math.max(0.1, Math.round(surplus * 10) / 10));
+      // Set initial kwhToList to available surplus
+      const surplus = Math.max(0, energy.surplus);
+      setKwhToList(surplus > 0 ? Math.min(surplus, surplus) : 0.1);
 
       setLoading(false);
     } catch (err) {
@@ -96,23 +95,7 @@ export default function ListSurplusPage() {
     fetchData();
   }, []);
 
-  // get latest meter reading 
-  const latestReading = useMemo(() => {
-    if (!readings || readings.length === 0) return null;
-    return readings[readings.length - 1];
-  }, []);
-
-  // calculate surplus based on generation - consumption
-  const currentSurplus = useMemo(() => {
-    if (!readings || readings.length === 0) return 0;
-
-    const recentReadings = readings.slice(-4); // last hour
-
-    return recentReadings.reduce((sum, r) => {
-      const surplus = r.generation - r.consumption;
-      return sum + Math.max(0, surplus);
-    }, 0);
-  }, []);
+  const currentSurplus = Math.max(0, energy.surplus);
 
   const handleSubmit = async () => {
     try {
@@ -200,28 +183,39 @@ export default function ListSurplusPage() {
 
             {/* kWh to list */}
             <div className="mb-6">
-              <label className="label-md text-on-surface-variant mb-2 block">
-                Energy to List (kWh)
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="label-md text-on-surface-variant">
+                  Energy to List (kWh)
+                </label>
+                <span className="label-md text-on-surface-variant">
+                  Max available: <span className="font-medium text-primary">{currentSurplus.toFixed(1)} kWh</span>
+                </span>
+              </div>
               <div className="flex items-center gap-4">
                 <input
                   type="range"
                   min={0.1}
-                  max={10}
+                  max={Math.max(0.1, currentSurplus)}
                   step={0.1}
-                  value={kwhToList}
+                  value={Math.min(kwhToList, Math.max(0.1, currentSurplus))}
                   onChange={(e) => setKwhToList(parseFloat(e.target.value))}
                   className="flex-1 accent-primary"
+                  disabled={currentSurplus <= 0}
                 />
                 <div className="bg-surface-low rounded-lg px-4 py-2 min-w-[100px] text-center">
                   <span className="font-display text-xl font-bold text-on-surface">
-                    {kwhToList.toFixed(1)}
+                    {Math.min(kwhToList, Math.max(0.1, currentSurplus)).toFixed(1)}
                   </span>
                   <span className="body-md text-on-surface-variant ml-1">
                     kWh
                   </span>
                 </div>
               </div>
+              {currentSurplus <= 0 && (
+                <p className="label-md text-red-500 mt-2">
+                  No surplus available to list. Wait for more solar generation.
+                </p>
+              )}
             </div>
 
             {/* Price per kWh */}
@@ -276,7 +270,7 @@ export default function ListSurplusPage() {
                 size="lg"
                 className="w-full"
                 onClick={handleSubmit}
-                disabled={kwhToList <= 0}
+                disabled={kwhToList <= 0 || currentSurplus <= 0}
               >
                 <Zap className="h-5 w-5" />
                 List for Sale
